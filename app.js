@@ -129,6 +129,20 @@ function initApp() {
   renderClientSelector();
   renderNotifications();
   
+  // Verifica se è stato passato un atleta nell'URL per bloccare l'app sul Portale Atleta
+  const urlParams = new URLSearchParams(window.location.search);
+  const athParam = urlParams.get('ath') || urlParams.get('athlete');
+  if (athParam) {
+    const athletes = getAthletes();
+    const matched = athletes.find(a => a.id === athParam || a.name.toLowerCase() === athParam.toLowerCase());
+    if (matched) {
+      activeClientAthleteId = matched.id;
+    }
+    switchView('client');
+    const viewSelector = document.querySelector('.view-selector');
+    if (viewSelector) viewSelector.style.display = 'none';
+  }
+  
   // Ricarica la vista client iniziale
   initClientPortal();
 
@@ -382,7 +396,10 @@ function renderAthleteHeader(athlete) {
         <span class="meta-badge" title="Reach statico ad un braccio (mano dominante)"><i data-lucide="hand" style="width:14px; color:var(--accent-blue);"></i> Reach statico: ${escapeHtml(reachDominante)}</span>
       </div>
     </div>
-    <div style="display:flex; gap:10px; align-items: center;">
+    <div style="display:flex; gap:10px; align-items: center; flex-wrap: wrap;">
+      <button onclick="copyAthleteLink('${escapeJsArg(athlete.id)}')" class="btn-secondary" style="color:var(--accent-neon); border-color:rgba(204,255,0,0.3);">
+        <i data-lucide="copy"></i> Copia Link
+      </button>
       <button onclick="openEditProfileModal()" class="btn-secondary">
         <i data-lucide="edit"></i> Modifica Profilo
       </button>
@@ -392,6 +409,18 @@ function renderAthleteHeader(athlete) {
     </div>
   `;
   safeCreateIcons();
+}
+
+function copyAthleteLink(athleteId) {
+  const baseUrl = window.location.origin + window.location.pathname;
+  const athleteUrl = `${baseUrl}?ath=${encodeURIComponent(athleteId)}`;
+  
+  navigator.clipboard.writeText(athleteUrl).then(() => {
+    alert("Link personalizzato copiato negli appunti!\nOra puoi inviarlo all'atleta via WhatsApp o SMS.");
+  }).catch(err => {
+    console.error("Errore copia link:", err);
+    prompt("Copia il link qui sotto:", athleteUrl);
+  });
 }
 function fillAnthropometricsForm(athlete) {
   const form = document.getElementById('form-anthropometrics');
@@ -2233,7 +2262,26 @@ function renderClientSelector() {
 
 function initClientPortal() {
   const athletes = getAthletes();
-  const athlete = athletes.find(a => a.id === activeClientAthleteId) || athletes[0] || null;
+  
+  // Controlla se c'è un parametro ath nell'URL per bloccare l'atleta specifico
+  const urlParams = new URLSearchParams(window.location.search);
+  const athParam = urlParams.get('ath') || urlParams.get('athlete');
+  
+  let athlete = null;
+  if (athParam) {
+    athlete = athletes.find(a => a.id === athParam || a.name.toLowerCase() === athParam.toLowerCase());
+    if (athlete) {
+      activeClientAthleteId = athlete.id;
+      // Nascondi selettore atleti per simulazione
+      const selectorEl = document.getElementById('client-athlete-selector');
+      if (selectorEl) selectorEl.style.display = 'none';
+    }
+  }
+  
+  if (!athlete) {
+    athlete = athletes.find(a => a.id === activeClientAthleteId) || athletes[0] || null;
+  }
+  
   if (!athlete) return;
   activeClientAthleteId = athlete.id;
 
