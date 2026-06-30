@@ -1152,10 +1152,105 @@ function createExerciseBuilderRow(ex, index) {
         <i data-lucide="trash-2"></i>
       </button>
     </div>
+
+    <div class="sets-builder-container" style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; margin-top: 8px; background: rgba(255,255,255,0.01); border-radius: var(--radius-sm); border-left: 2px solid var(--accent-neon); align-items: center;">
+    </div>
   `;
 
   container.appendChild(row);
+  updateSetsBuilder(row, ex.setsList || null);
+  initExerciseBuilderRowListeners(row);
   safeCreateIcons();
+}
+
+function updateSetsBuilder(row, setsList = null) {
+  const container = row.querySelector('.sets-builder-container');
+  if (!container) return;
+
+  const setsInput = row.querySelector('.ex-sets');
+  const repsInput = row.querySelector('.ex-reps');
+  const weightInput = row.querySelector('.ex-weight');
+  const selectEx = row.querySelector('.ex-select');
+  
+  const setsCount = Math.max(1, parseInt(setsInput.value) || 4);
+  const defaultReps = Math.max(1, parseInt(repsInput.value) || 5);
+  const defaultWeight = Math.max(0, parseFloat(weightInput.value) || 0);
+
+  const selectedOption = selectEx.options[selectEx.selectedIndex];
+  const type = selectedOption ? selectedOption.getAttribute('data-type') : 'weight';
+
+  container.innerHTML = `
+    <span style="font-size:11px; font-weight:700; color:var(--text-muted); margin-right:8px; display:flex; align-items:center; gap:4px;">
+      <i data-lucide="layers" style="width:14px; color:var(--accent-neon); height:14px;"></i> Dettaglio Serie:
+    </span>
+  `;
+
+  for (let s = 0; s < setsCount; s++) {
+    let currentReps = defaultReps;
+    let currentWeight = defaultWeight;
+
+    if (setsList && Array.isArray(setsList) && setsList[s]) {
+      currentReps = setsList[s].reps;
+      currentWeight = setsList[s].weight !== undefined ? setsList[s].weight : defaultWeight;
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'set-builder-bubble';
+    bubble.style.cssText = 'display:flex; align-items:center; gap:4px; background:var(--bg-surface); border:1px solid var(--border-color); padding:4px 8px; border-radius:6px;';
+
+    let inputsHtml = '';
+    if (type === 'weight') {
+      inputsHtml = `
+        <input type="number" class="set-weight form-control-flat" value="${currentWeight}" min="0" style="width:45px; text-align:center; background:none; border:none; color:var(--text-main); font-weight:700; padding:0; margin:0;">
+        <span style="font-size:10px; color:var(--text-muted);">kg</span>
+        <span style="font-size:10px; color:var(--text-muted); margin:0 2px;">×</span>
+        <input type="number" class="set-reps form-control-flat" value="${currentReps}" min="1" style="width:35px; text-align:center; background:none; border:none; color:var(--text-main); font-weight:700; padding:0; margin:0;">
+        <span style="font-size:10px; color:var(--text-muted);">rep</span>
+      `;
+    } else if (type === 'time') {
+      inputsHtml = `
+        <input type="number" class="set-reps form-control-flat" value="${currentReps}" min="1" style="width:35px; text-align:center; background:none; border:none; color:var(--text-main); font-weight:700; padding:0; margin:0;">
+        <span style="font-size:10px; color:var(--text-muted);">sec</span>
+      `;
+    } else {
+      inputsHtml = `
+        <input type="number" class="set-reps form-control-flat" value="${currentReps}" min="1" style="width:35px; text-align:center; background:none; border:none; color:var(--text-main); font-weight:700; padding:0; margin:0;">
+        <span style="font-size:10px; color:var(--text-muted);">rep</span>
+      `;
+    }
+
+    bubble.innerHTML = `
+      <span style="font-size:10px; color:var(--text-muted); font-weight:700; margin-right:2px;">S${s+1}:</span>
+      ${inputsHtml}
+    `;
+
+    container.appendChild(bubble);
+  }
+  safeCreateIcons();
+}
+
+function initExerciseBuilderRowListeners(row) {
+  const setsInput = row.querySelector('.ex-sets');
+  const repsInput = row.querySelector('.ex-reps');
+  const weightInput = row.querySelector('.ex-weight');
+
+  setsInput.addEventListener('input', () => {
+    updateSetsBuilder(row);
+  });
+
+  repsInput.addEventListener('input', () => {
+    const bubbles = row.querySelectorAll('.sets-builder-container .set-reps');
+    bubbles.forEach(input => {
+      input.value = repsInput.value;
+    });
+  });
+
+  weightInput.addEventListener('input', () => {
+    const bubbles = row.querySelectorAll('.sets-builder-container .set-weight');
+    bubbles.forEach(input => {
+      input.value = weightInput.value;
+    });
+  });
 }
 
 function handleCategoryChange(categorySelect) {
@@ -1281,6 +1376,18 @@ function saveActiveSeduta(andActivate = false) {
     const weightVal = Math.max(0, parseFloat(row.querySelector('.ex-weight').value) || 0);
     const restVal = Math.max(0, parseInt(row.querySelector('.ex-rest').value) || 120);
 
+    const setsList = [];
+    const bubbles = row.querySelectorAll('.sets-builder-container .set-builder-bubble');
+    bubbles.forEach(bubble => {
+      const wInput = bubble.querySelector('.set-weight');
+      const rInput = bubble.querySelector('.set-reps');
+      
+      const w = wInput ? Math.max(0, parseFloat(wInput.value) || 0) : weightVal;
+      const r = rInput ? Math.max(1, parseInt(rInput.value) || 5) : repsVal;
+      
+      setsList.push({ reps: r, weight: w });
+    });
+
     newExercises.push({
       id: 'ex-' + (i + 1),
       name: select.value,
@@ -1291,7 +1398,8 @@ function saveActiveSeduta(andActivate = false) {
       reps: repsVal,
       weight: weightVal,
       rest: restVal,
-      notes: ''
+      notes: '',
+      setsList: setsList
     });
   });
 
@@ -1508,7 +1616,7 @@ function renderHistory(athlete) {
 
         setsHtml += `
           <span class="set-bubble ${wasMissed ? 'missed' : ''}" title="Target: ${ex.type === 'weight' ? set.targetWeight + 'kg x' : ''} ${set.targetReps}">
-            S${sIdx+1}: ${labelText} ${set.completed ? 'âœ“' : 'âœ—'}
+            S${sIdx+1}: ${labelText} ${set.completed ? '\u2713' : '\u2717'}
           </span>
         `;
       });
@@ -2366,30 +2474,38 @@ function renderClientWorkoutList(athlete) {
     card.setAttribute('data-ex-type', ex.type || 'weight');
 
     let setsRowsHtml = '';
-    for (let s = 0; s < ex.sets; s++) {
+    const numSets = Array.isArray(ex.setsList) ? ex.setsList.length : ex.sets;
+
+    for (let s = 0; s < numSets; s++) {
       let targetText = '';
-      let inputVal = ex.reps;
+      let targetReps = ex.reps;
+      let targetWeight = ex.weight || 0;
+
+      if (Array.isArray(ex.setsList) && ex.setsList[s]) {
+        targetReps = ex.setsList[s].reps;
+        targetWeight = ex.setsList[s].weight !== undefined ? ex.setsList[s].weight : (ex.weight || 0);
+      }
 
       if (ex.type === 'weight') {
-        targetText = `${ex.weight}kg x ${ex.reps}`;
+        targetText = `${targetWeight}kg x ${targetReps}`;
       } else if (ex.type === 'time') {
-        targetText = `${ex.reps} sec`;
+        targetText = `${targetReps} sec`;
       } else {
-        targetText = `${ex.reps} rep`;
+        targetText = `${targetReps} rep`;
       }
 
       let inputWrapperHtml = '';
       if (ex.type === 'weight') {
         inputWrapperHtml = `
-          <input type="number" class="client-input-weight form-control" value="${ex.weight || 0}" min="0">
+          <input type="number" class="client-input-weight form-control" value="${targetWeight}" min="0">
           <span style="font-size:10px; color:var(--text-muted);">kg</span>
           <span style="font-size:10px; color:var(--text-muted); margin: 0 2px;">x</span>
-          <input type="number" class="client-input-rep form-control" value="${inputVal}" min="0">
+          <input type="number" class="client-input-rep form-control" value="${targetReps}" min="0">
           <span style="font-size:10px; color:var(--text-muted);">rep</span>
         `;
       } else {
         inputWrapperHtml = `
-          <input type="number" class="client-input-rep form-control" value="${inputVal}" min="0">
+          <input type="number" class="client-input-rep form-control" value="${targetReps}" min="0">
           <span style="font-size:10px; color:var(--text-muted);">${ex.type === 'time' ? 's' : 'rep'}</span>
         `;
       }
@@ -2619,19 +2735,26 @@ function submitClientWorkout() {
     const setRows = card.querySelectorAll('.client-set-row');
     const setsData = [];
 
-    setRows.forEach(row => {
+    setRows.forEach((row, sIdx) => {
       const actualRepsInput = row.querySelector('.client-input-rep');
       const actualReps = Math.max(0, parseInt(actualRepsInput.value) || 0);
       
       const actualWeightInput = row.querySelector('.client-input-weight');
-      const actualWeight = actualWeightInput ? Math.max(0, parseFloat(actualWeightInput.value) || 0) : (targetEx.weight || 0);
+      const actualWeight = actualWeightInput ? Math.max(0, parseFloat(actualWeightInput.value) || 0) : 0;
+
+      let setTargetReps = targetEx.reps;
+      let setTargetWeight = targetEx.weight || 0;
+      if (Array.isArray(targetEx.setsList) && targetEx.setsList[sIdx]) {
+        setTargetReps = targetEx.setsList[sIdx].reps;
+        setTargetWeight = targetEx.setsList[sIdx].weight !== undefined ? targetEx.setsList[sIdx].weight : setTargetWeight;
+      }
 
       setsData.push({
-        targetReps: targetEx.reps,
+        targetReps: setTargetReps,
         actualReps: actualReps,
-        targetWeight: targetEx.weight || 0,
+        targetWeight: setTargetWeight,
         actualWeight: actualWeight,
-        completed: true // Implicitamente completata se presente e non rimossa
+        completed: true
       });
     });
 
