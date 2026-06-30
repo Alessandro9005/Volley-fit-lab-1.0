@@ -141,6 +141,14 @@ function initApp() {
     switchView('client');
     const viewSelector = document.querySelector('.view-selector');
     if (viewSelector) viewSelector.style.display = 'none';
+    const logoutBtn = document.getElementById('btn-coach-logout');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  } else {
+    // Vista Coach: controlla se è autenticato
+    const isAuth = localStorage.getItem('fitfeedback_coach_authenticated') === 'true';
+    if (!isAuth) {
+      showCoachPasswordPrompt();
+    }
   }
   
   // Ricarica la vista client iniziale
@@ -2637,9 +2645,19 @@ function submitClientWorkout() {
   stopWorkoutTimer();
 
   activeAthleteId = activeClientAthleteId;
-  alert("Allenamento inviato con successo! I feedback sono pronti nella Dashboard del Coach.");
+
+  // Calcola l'RPE medio della seduta
+  let sumRpe = 0;
+  let countRpe = 0;
+  completedExercises.forEach(ex => {
+    if (ex.fatigue) {
+      sumRpe += ex.fatigue;
+      countRpe++;
+    }
+  });
+  const avgRpe = countRpe > 0 ? (sumRpe / countRpe) : 0;
   
-  switchView('trainer');
+  showClientSuccessModal(avgRpe);
 }
 
 // ==========================================================================
@@ -3157,5 +3175,79 @@ async function uploadSingleAthleteToSupabase(athlete) {
       cloudSyncAvailable = false;
     }
     console.error(`Errore salvataggio cloud per ${athlete.name}:`, err);
+  }
+}
+
+function showCoachPasswordPrompt() {
+  const overlay = document.getElementById('coach-password-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+  }
+  
+  const form = document.getElementById('form-coach-login');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pwdInput = document.getElementById('coach-password-input');
+      const errorMsg = document.getElementById('login-error-msg');
+      
+      // Default password: coachfitlab
+      if (pwdInput.value === 'coachfitlab') {
+        localStorage.setItem('fitfeedback_coach_authenticated', 'true');
+        if (overlay) overlay.style.display = 'none';
+        pwdInput.value = '';
+        if (errorMsg) errorMsg.style.display = 'none';
+        // Ricarica per inizializzare le icone all'interno della dashboard sbloccata
+        location.reload();
+      } else {
+        if (errorMsg) errorMsg.style.display = 'block';
+        pwdInput.value = '';
+      }
+    });
+  }
+}
+
+function logoutCoach() {
+  localStorage.removeItem('fitfeedback_coach_authenticated');
+  location.reload();
+}
+
+function showClientSuccessModal(avgRpe) {
+  const overlay = document.getElementById('modal-client-success');
+  const rpeValSpan = document.getElementById('client-success-rpe-val');
+  const msgEl = document.getElementById('client-success-message');
+  
+  if (rpeValSpan) rpeValSpan.innerText = avgRpe.toFixed(1);
+  
+  let joke = "";
+  if (avgRpe === 0) {
+    joke = "Allenamento completato! Aspettiamo che tu inserisca i dati per valutare la fatica.";
+  } else if (avgRpe <= 2.0) {
+    joke = "Praticamente una passeggiata di salute! Sicura di aver fatto pesi o eri a fare una chiacchierata in palestra? 😜";
+  } else if (avgRpe <= 3.4) {
+    joke = "Ottimo lavoro! Un bel mattoncino solido verso la tua forma migliore. Avanti così! 🚀";
+  } else if (avgRpe <= 4.4) {
+    joke = "Intensità super! Stasera le gambe bruceranno un po', ma domani sarai più forte di prima! 💪";
+  } else {
+    joke = "SOPRAVVISSUTA! 💀 Il coach ha tentato di farti fuori ma hai resistito! Divano e meritato riposo adesso, te lo sei guadagnato! 🏆";
+  }
+  
+  if (msgEl) msgEl.innerText = joke;
+  if (overlay) {
+    overlay.style.display = 'flex';
+    safeCreateIcons();
+  }
+}
+
+function closeClientSuccessModal() {
+  const overlay = document.getElementById('modal-client-success');
+  if (overlay) overlay.style.display = 'none';
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const athParam = urlParams.get('ath') || urlParams.get('athlete');
+  if (athParam) {
+    initClientPortal();
+  } else {
+    switchView('trainer');
   }
 }

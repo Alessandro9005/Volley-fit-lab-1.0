@@ -14,6 +14,46 @@
 </head>
 <body>
 
+  <!-- Schermata di Accesso Coach (Password Overlay) -->
+  <div id="coach-password-overlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(15, 17, 26, 0.98); z-index: 9999;">
+    <div class="info-card" style="max-width: 360px; width: 90%; text-align: center; border: 1px solid var(--border-color); padding: 30px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); background: var(--bg-surface);">
+      <div class="logo-icon" style="margin: 0 auto 16px auto; width: 50px; height: 50px; background: rgba(204,255,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i data-lucide="lock" style="color: var(--accent-neon); width: 24px; height: 24px;"></i>
+      </div>
+      <h3 style="font-family: var(--font-title); margin-bottom: 8px;">Area Riservata Coach</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Inserisci la password per accedere alla Dashboard di Volley Fit Lab.</p>
+      <form id="form-coach-login" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="password" id="coach-password-input" class="form-control" placeholder="Password" required style="text-align: center; font-size: 16px; letter-spacing: 2px;">
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+          <i data-lucide="unlock"></i> Accedi
+        </button>
+      </form>
+      <div id="login-error-msg" style="color: var(--accent-red); font-size: 12px; margin-top: 10px; display: none; font-weight: 600;">
+        Password errata! Riprova.
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Complimenti Atleta -->
+  <div id="modal-client-success" class="modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(15, 17, 26, 0.98); z-index: 9999;">
+    <div class="info-card" style="max-width: 380px; width: 90%; text-align: center; border: 1px solid var(--border-color); padding: 30px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); background: var(--bg-surface);">
+      <div class="logo-icon" style="margin: 0 auto 16px auto; width: 60px; height: 60px; background: rgba(204,255,0,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i data-lucide="party-popper" style="color: var(--accent-neon); width: 28px; height: 28px;"></i>
+      </div>
+      <h3 style="font-family: var(--font-title); margin-bottom: 12px; font-size: 22px;">Grande Lavoro! 🎉</h3>
+      <p id="client-success-rpe-info" style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Fatica (RPE) Media: <strong><span id="client-success-rpe-val">0.0</span> / 5</strong></p>
+      
+      <!-- Battuta personalizzata in base all'RPE -->
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+        <p id="client-success-message" style="font-size: 14px; font-style: italic; color: var(--text-main); font-weight: 500; line-height: 1.4;"></p>
+      </div>
+
+      <button onclick="closeClientSuccessModal()" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+        <i data-lucide="check"></i> Chiudi e Torna alla Home
+      </button>
+    </div>
+  </div>
+
   <!-- Barra Superiore Navigazione -->
   <header>
     <div class="logo-container">
@@ -40,6 +80,11 @@
       <button class="btn-secondary" id="btn-notifications" onclick="openModal('modal-notifications')" style="position: relative; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer;" title="Notifiche completamento sedute">
         <i data-lucide="bell" style="width: 20px; height: 20px; color: var(--text-main);"></i>
         <span id="notifications-badge" class="badge-alert" style="position: absolute; top: -4px; right: -4px; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; padding: 0; background: var(--accent-red); color: white; border: 2px solid var(--bg-secondary);">0</span>
+      </button>
+      
+      <!-- Pulsante Logout Coach -->
+      <button class="btn-secondary" id="btn-coach-logout" onclick="logoutCoach()" style="padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer;" title="Esci dall'area Coach">
+        <i data-lucide="log-out" style="width: 18px; height: 18px; color: var(--accent-red);"></i>
       </button>
     </div>
   </header>
