@@ -562,6 +562,19 @@ function deleteAthlete(athleteId) {
     db.athletes = db.athletes.filter(a => a.id !== athleteId);
     saveDatabase(db);
     
+    // Rimuove l'atleta anche dal database cloud Supabase
+    if (supabaseClient) {
+      supabaseClient.from('athletes').delete().eq('id', athleteId).then(({ error }) => {
+        if (error) {
+          console.error("Errore cancellazione atleta in cloud:", error);
+        } else {
+          console.log(`Atleta ${athleteId} rimosso anche dal cloud.`);
+        }
+      }).catch(err => {
+        console.error("Errore di rete cancellazione cloud:", err);
+      });
+    }
+    
     if (db.athletes.length > 0) {
       activeAthleteId = db.athletes[0].id;
     } else {
