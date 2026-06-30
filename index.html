@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volley Fit Lab - Preparazione Atletica Pallavolo</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js CDN per grafici prestazionali -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons per icone vettoriali premium -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Barra Superiore Navigazione -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">
+        <i data-lucide="volleyball"></i>
+      </div>
+      <div>
+        <div class="logo-text">Volley Fit Lab</div>
+        <div class="logo-subtitle">Volleyball Performance & Science</div>
+      </div>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <div class="view-selector">
+        <button id="btn-view-trainer" class="view-btn active">
+          <i data-lucide="layout-dashboard"></i> Dashboard Coach
+        </button>
+        <button id="btn-view-client" class="view-btn">
+          <i data-lucide="smartphone"></i> Portale Atleta (Mobile)
+        </button>
+      </div>
+      
+      <!-- Pulsante Notifiche Coach -->
+      <button class="btn-secondary" id="btn-notifications" onclick="openModal('modal-notifications')" style="position: relative; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer;" title="Notifiche completamento sedute">
+        <i data-lucide="bell" style="width: 20px; height: 20px; color: var(--text-main);"></i>
+        <span id="notifications-badge" class="badge-alert" style="position: absolute; top: -4px; right: -4px; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; padding: 0; background: var(--accent-red); color: white; border: 2px solid var(--bg-secondary);">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenitore Principale -->
+  <main>
+    
+    <!-- ==========================================
+         VISTA PREPARATORE (Trainer View)
+         ========================================== -->
+    <div id="view-trainer" class="app-view active">
+      <div class="trainer-grid">
+        
+        <!-- Sidebar Atleti -->
+        <aside class="trainer-sidebar">
+          <div class="sidebar-title">
+            <span>I Miei Pallavolisti</span>
+            <button id="btn-add-athlete" class="add-athlete-btn" title="Aggiungi Nuovo Atleta">
+              <i data-lucide="user-plus"></i>
+            </button>
+          </div>
+          <div id="athlete-list-container" class="athlete-list">
+            <!-- Popolato via JS -->
+          </div>
+        </aside>
+
+        <!-- Contenuto Dashboard -->
+        <section class="trainer-content">
+          
+          <!-- Pannello Introduttivo Atleta Selezionato -->
+          <div id="selected-athlete-header" class="athlete-header-panel">
+            <!-- Popolato via JS -->
+          </div>
+
+          <!-- Tab Navigazione Interna -->
+          <div class="trainer-tabs">
+            <button class="tab-btn active" data-tab="tab-profile">
+              <i data-lucide="user"></i> Profilo & Test
+            </button>
+            <button class="tab-btn" data-tab="tab-program">
+              <i data-lucide="clipboard-list"></i> Programmazione
+            </button>
+            <button class="tab-btn" data-tab="tab-history">
+              <i data-lucide="history"></i> Feedback & Storico
+            </button>
+            <button class="tab-btn" data-tab="tab-analytics">
+              <i data-lucide="trending-up"></i> Analisi Trend
+            </button>
+          </div>
+
+          <!-- Tab 1: Profilo e Test -->
+          <div id="tab-profile" class="tab-panel active">
+            <div class="profile-grid">
+              
+              <!-- Dati Antropometrici -->
+              <div class="info-card">
+                <h3><i data-lucide="ruler" style="color: var(--accent-blue);"></i> Parametri Antropometrici</h3>
+                <form id="form-anthropometrics">
+                  <div class="antropometria-visual">
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Peso Corporeo (kg)</span>
+                      <input type="number" step="0.1" name="peso" class="form-control" style="width: 120px; text-align: right;" required>
+                    </div>
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Altezza (cm)</span>
+                      <input type="number" name="altezza" class="form-control" style="width: 120px; text-align: right;" required>
+                    </div>
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Reach a una mano (cm)</span>
+                      <input type="number" name="reachDominante" class="form-control" style="width: 120px; text-align: right;" required>
+                    </div>
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Ruolo in campo</span>
+                      <select name="ruolo" class="form-control" style="width: 120px;" required>
+                        <option value="Schiacciatore">Schiacciatore</option>
+                        <option value="Centrale">Centrale</option>
+                        <option value="Opposto">Opposto</option>
+                        <option value="Palleggiatore">Palleggiatore</option>
+                        <option value="Libero">Libero</option>
+                      </select>
+                    </div>
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Età (anni)</span>
+                      <input type="number" name="age" class="form-control" style="width: 120px; text-align: right;" required>
+                    </div>
+                    <div class="antropometria-row">
+                      <span class="antropometria-label">Genere</span>
+                      <select name="gender" class="form-control" style="width: 120px;" required>
+                        <option value="M">Maschile</option>
+                        <option value="F">Femminile</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn-primary">
+                      <i data-lucide="save"></i> Salva Parametri
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Test Fisici Recenti -->
+              <div class="info-card">
+                <h3><i data-lucide="award" style="color: var(--accent-orange);"></i> Test Atletici & Prestazione</h3>
+                
+                <div class="test-section">
+                  <h4 style="font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Test di Forza (1RM Stimato/Reale)</h4>
+                  <div class="test-grid">
+                    <div class="test-card" onclick="openSingleTestModal('squat1RM', 'strength', 'Back Squat', 'kg')">
+                      <div class="test-card-title">Back Squat</div>
+                      <div id="test-val-squat" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" onclick="openSingleTestModal('powerClean1RM', 'strength', 'Power Clean', 'kg')">
+                      <div class="test-card-title">Power Clean</div>
+                      <div id="test-val-powerclean" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" onclick="openSingleTestModal('pushPress1RM', 'strength', 'Push Press', 'kg')">
+                      <div class="test-card-title">Push Press</div>
+                      <div id="test-val-pushpress" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" onclick="openSingleTestModal('deadlift1RM', 'strength', 'Stacco Bilanciere', 'kg')">
+                      <div class="test-card-title">Stacco Bilanciere</div>
+                      <div id="test-val-deadlift" class="test-card-value">--</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="test-section" style="margin-top: 20px;">
+                  <h4 style="font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Test di Salto & Velocità</h4>
+                  <div class="test-grid">
+                    <div class="test-card" onclick="openSingleTestModal('cmj', 'elevation', 'Elevazione CMJ', 'cm')">
+                      <div class="test-card-title">Elevazione CMJ</div>
+                      <div id="test-val-cmj" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" onclick="openSingleTestModal('broadJump', 'elevation', 'Broad Jump', 'cm')">
+                      <div class="test-card-title">Broad Jump</div>
+                      <div id="test-val-broadjump" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" title="Altezza massima toccata con rincorsa da attacco" onclick="openSingleTestModal('spikeJump', 'elevation', 'Rincorsa Attacco', 'cm')">
+                      <div class="test-card-title">Rincorsa Attacco</div>
+                      <div id="test-val-spikejump" class="test-card-value">--</div>
+                    </div>
+                    <div class="test-card" onclick="openSingleTestModal('sprint10m', 'speed', 'Sprint 10m', 's')">
+                      <div class="test-card-title">Sprint 10m</div>
+                      <div id="test-val-sprint10m" class="test-card-value">--</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                  <button id="btn-add-test-results" class="btn-secondary">
+                    <i data-lucide="plus-circle"></i> Registra Nuovi Test
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tab 2: Programma Scheda (Macrociclo & Dettaglio) -->
+          <div id="tab-program" class="tab-panel">
+            
+            <!-- Vista 1: Elenco delle Sedute del Macrociclo -->
+            <div id="macrociclo-overview-container" class="info-card">
+              <!-- Selettore Macrociclo -->
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="layers" style="color: var(--accent-orange); width: 20px;"></i>
+                    <select id="macrociclo-selector" class="form-control" style="width: 250px; padding: 8px 12px; font-size: 14px; font-weight: 600; font-family: var(--font-title);" onchange="switchMacrocicloView(this.value)">
+                    </select>
+                  </div>
+                  <button onclick="renameMacrociclo()" class="btn-secondary" style="padding: 6px 10px; font-size: 12px;" title="Rinomina macrociclo">
+                    <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                  </button>
+                  <button onclick="deleteMacrociclo()" class="btn-secondary" style="padding: 6px 10px; font-size: 12px; border-color: rgba(255,51,102,0.2);" title="Elimina macrociclo">
+                    <i data-lucide="trash-2" style="width:14px; height:14px; color:var(--accent-red);"></i>
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button id="btn-add-macrociclo" class="btn-secondary" onclick="handleAddMacrociclo()">
+                    <i data-lucide="folder-plus"></i> Nuovo Macrociclo
+                  </button>
+                  <button id="btn-add-seduta" class="btn-primary">
+                    <i data-lucide="plus-circle"></i> Nuova Seduta
+                  </button>
+                </div>
+              </div>
+              <div id="macrociclo-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Popolato via JS con le sedute numerate (1, 2, 3...) -->
+              </div>
+            </div>
+
+            <!-- Vista 2: Dettaglio della Singola Seduta (Builder di Esercizi) -->
+            <div id="workout-builder-detail-container" class="info-card workout-creator" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <div>
+                  <h3 id="builder-seduta-title" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="edit" style="color: var(--accent-neon);"></i> Modifica Seduta
+                  </h3>
+                  <span style="font-size: 12px; color: var(--text-muted);">Inserisci le note tecniche, i set, i carichi e i recuperi per questa seduta.</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button id="btn-back-to-macrociclo" class="btn-secondary">
+                    <i data-lucide="arrow-left"></i> Torna al Macrociclo
+                  </button>
+                  <button id="btn-add-exercise-to-program" class="btn-primary">
+                    <i data-lucide="plus"></i> Aggiungi Esercizio
+                  </button>
+                </div>
+              </div>
+
+              <!-- Lista Esercizi in Costruzione -->
+              <div id="program-exercises-container" class="exercise-builder-list">
+                <!-- Popolato via JS con righe interattive -->
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <span style="font-size: 12px; color: var(--text-muted);">Le modifiche aggiorneranno la seduta nel macrociclo dell'atleta.</span>
+                <div style="display: flex; gap: 12px;">
+                  <button id="btn-save-seduta-only" class="btn-secondary">
+                    <i data-lucide="save"></i> Salva nel Macrociclo
+                  </button>
+                  <button id="btn-save-and-send-seduta" class="btn-primary">
+                    <i data-lucide="send"></i> Salva e Attiva su Smartphone
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Tab 3: Feedback & Storico -->
+          <div id="tab-history" class="tab-panel">
+            <div class="history-table-container">
+              <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <h3 style="font-family: var(--font-title); font-size: 18px;"><i data-lucide="check-square" style="color: var(--accent-neon); vertical-align: middle;"></i> Diario Allenamenti & Feedback Ricevuti</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Periodo:</span>
+                  <select id="history-month-filter" class="form-control" style="width: 200px; padding: 6px 10px; font-size: 13px;" onchange="renderHistoryFiltered()">
+                    <option value="all">Tutti i mesi</option>
+                  </select>
+                </div>
+              </div>
+              <div id="history-container">
+                <!-- Lista cronologica degli allenamenti completati dall'atleta -->
+              </div>
+            </div>
+          </div>          <!-- Tab 4: Analisi Trend -->
+          <div id="tab-analytics" class="tab-panel">
+            
+            <!-- Navigazione Sotto-Tab Analisi -->
+            <div class="sub-tab-nav" style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; flex-wrap: wrap;">
+              <button class="btn-primary sub-tab-btn" id="subtab-btn-tests" onclick="switchAnalyticsSubTab('tests')">
+                <i data-lucide="line-chart" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Massimali dei Test
+              </button>
+              <button class="btn-secondary sub-tab-btn" id="subtab-btn-volume" onclick="switchAnalyticsSubTab('volume')">
+                <i data-lucide="bar-chart-2" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Volume & Parametri Allenamento
+              </button>
+              <button class="btn-secondary sub-tab-btn" id="subtab-btn-rpe" onclick="switchAnalyticsSubTab('rpe')">
+                <i data-lucide="brain" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Andamento Fatica (RPE)
+              </button>
+            </div>
+
+            <!-- SOTTO-TAB 1: MASSIMALI DEI TEST -->
+            <div id="subtab-tests-content">
+              <div class="analytics-grid">
+                
+                <!-- 1. Grafico Back Squat -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="trending-up" style="color: var(--accent-neon);"></i> Massimali Back Squat
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-squat"></canvas>
+                  </div>
+                </div>
+
+                <!-- 2. Grafico Power Clean -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="zap" style="color: var(--accent-blue);"></i> Power Clean
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-powerclean"></canvas>
+                  </div>
+                </div>
+
+                <!-- 3. Grafico Push Press -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="dumbbell" style="color: var(--accent-orange);"></i> Push Press
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-pushpress"></canvas>
+                  </div>
+                </div>
+
+                <!-- 4. Grafico Stacco Bilanciere -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="anchor" style="color: var(--accent-red);"></i> Stacco Bilanciere
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-deadlift"></canvas>
+                  </div>
+                </div>
+
+                <!-- 5. Grafico CMJ -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="activity" style="color: var(--accent-neon);"></i> Elevazione Verticale CMJ (cm)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-cmj"></canvas>
+                  </div>
+                </div>
+
+                <!-- 6. Grafico Broad Jump -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="award" style="color: var(--accent-blue);"></i> Salto in lungo da fermo (cm)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-broadjump"></canvas>
+                  </div>
+                </div>
+
+                <!-- 7. Grafico Rincorsa Attacco (Spike Jump) -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="arrow-up" style="color: var(--accent-orange);"></i> Reach Salto con Rincorsa (cm)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-spikejump"></canvas>
+                  </div>
+                </div>
+
+                <!-- 8. Grafico Sprint 10m -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="gauge" style="color: var(--accent-blue);"></i> Tempo Sprint 10m (s)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-sprint10m"></canvas>
+                  </div>
+                </div>
+
+                <!-- 9. Grafico RPE Medio -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="brain" style="color: var(--accent-red);"></i> Fatica di Allenamento (RPE Medio 1-5)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-rpe"></canvas>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- SOTTO-TAB 2: VOLUME & PARAMETRI ALLENAMENTO -->
+            <div id="subtab-volume-content" style="display: none;">
+              <!-- Controllo Periodo -->
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h4 style="font-family: var(--font-title); font-size: 15px; margin: 0; color: var(--accent-orange);">Filtro Periodizzazione Volume</h4>
+                  <span style="font-size: 11px; color: var(--text-muted);">Scegli l'intervallo temporale per calcolare il tonnellaggio e le ripetizioni.</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight:600;">Periodo:</span>
+                  <select id="volume-timeframe-filter" class="form-control" style="width: 200px; padding: 4px 8px; font-size:13px;" onchange="updateVolumeAnalytics()">
+                    <option value="all">Tutte le sedute</option>
+                    <option value="12m">Ultimi 12 mesi</option>
+                    <option value="6m">Ultimi 6 mesi</option>
+                    <option value="3m">Ultimi 3 mesi</option>
+                    <option value="1m" selected>Ultimo mese</option>
+                    <option value="1w">Ultima settimana</option>
+                    <option value="last">Ultima seduta</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Riepilogo Volumi Generali & per Gruppo Muscolare -->
+              <div class="test-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                <div class="test-card" style="cursor: default; border-color: rgba(204,255,0,0.3);">
+                  <div class="test-card-title" style="color: var(--accent-neon);">Tonnellaggio Totale</div>
+                  <div id="vol-summary-tonnage" class="test-card-value" style="font-size: 20px; color: var(--accent-neon); margin-top: 4px;">0 kg</div>
+                  <span style="font-size: 10px; color: var(--text-muted);">Volume (kg * rep * set)</span>
+                </div>
+                <div class="test-card" style="cursor: default; border-color: rgba(0,217,255,0.3);">
+                  <div class="test-card-title" style="color: var(--accent-blue);">Ripetizioni Totali</div>
+                  <div id="vol-summary-reps" class="test-card-value" style="font-size: 20px; color: var(--accent-blue); margin-top: 4px;">0</div>
+                  <span style="font-size: 10px; color: var(--text-muted);">Alzate totali (rep * set)</span>
+                </div>
+                <div class="test-card" style="cursor: default;">
+                  <div class="test-card-title">Arti Inferiori</div>
+                  <div id="vol-summary-lower" style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-lower-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-lower-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default;">
+                  <div class="test-card-title">Arti Superiori</div>
+                  <div id="vol-summary-upper" style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-upper-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-upper-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default;">
+                  <div class="test-card-title">Pliometrici / Balistici</div>
+                  <div id="vol-summary-plyo" style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-plyo-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-plyo-reps">0</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Riepilogo Volumi Esercizi Specifici (Esercizi Target) -->
+              <div style="margin-bottom: 12px; margin-top: 16px;">
+                <h5 style="font-family: var(--font-title); font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">Dettaglio Esercizi Target nel Periodo</h5>
+              </div>
+              <div class="test-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
+                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
+                  <div class="test-card-title">Squat & Affondi</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-squat-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-squat-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
+                  <div class="test-card-title">Stacchi & RDL</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-deadlift-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-deadlift-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
+                  <div class="test-card-title">Press Verticali (Tutte)</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-press-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-press-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
+                  <div class="test-card-title">High Pull & Clean</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-cleanpull-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-cleanpull-reps">0</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Controllo Visualizzazione Grafici: Tonnellaggio vs Alzate -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; margin-top: 10px;">
+                <h5 style="font-family: var(--font-title); font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin: 0;">Andamento temporale del volume di lavoro</h5>
+                <div style="display: flex; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 2px; border-radius: var(--radius-sm);">
+                  <button type="button" class="btn-primary" id="btn-vol-metric-ton" onclick="switchVolumeMetric('ton')" style="padding: 4px 10px; font-size: 11px; border: none; font-weight: 600; cursor: pointer;">Tonnellaggio (kg)</button>
+                  <button type="button" class="btn-secondary" id="btn-vol-metric-reps" onclick="switchVolumeMetric('reps')" style="padding: 4px 10px; font-size: 11px; border: none; font-weight: 600; background: transparent; color: var(--text-muted); cursor: pointer;">Alzate (Reps)</button>
+                </div>
+              </div>
+
+              <!-- Griglia Grafici Volume Esercizi Principali -->
+              <div class="analytics-grid">
+                <!-- 1. Volume Back Squat -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="trending-up" style="color: var(--accent-neon);"></i> Volume Back Squat (Tonnellaggio vs Alzate)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-vol-squat"></canvas>
+                  </div>
+                </div>
+
+                <!-- 2. Volume Power Clean -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="zap" style="color: var(--accent-blue);"></i> Volume Power Clean (Tonnellaggio vs Alzate)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-vol-powerclean"></canvas>
+                  </div>
+                </div>
+
+                <!-- 3. Volume Push Press -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="dumbbell" style="color: var(--accent-orange);"></i> Volume Push Press (Tonnellaggio vs Alzate)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-vol-pushpress"></canvas>
+                  </div>
+                </div>
+
+                <!-- 4. Volume Stacco Bilanciere -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="anchor" style="color: var(--accent-red);"></i> Volume Stacco Bilanciere (Tonnellaggio vs Alzate)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-vol-deadlift"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SOTTO-TAB 3: ANDAMENTO FATICA (RPE) -->
+            <div id="subtab-rpe-content" style="display: none;">
+              <!-- Controllo Periodo RPE -->
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h4 style="font-family: var(--font-title); font-size: 15px; margin: 0; color: var(--accent-red);">Filtro Periodizzazione RPE</h4>
+                  <span style="font-size: 11px; color: var(--text-muted);">Scegli l'intervallo temporale per tracciare l'andamento della fatica percepita.</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight:600;">Periodo:</span>
+                  <select id="rpe-timeframe-filter" class="form-control" style="width: 200px; padding: 4px 8px; font-size:13px;" onchange="renderAnalyticsCharts()">
+                    <option value="all">Tutte le sedute</option>
+                    <option value="12m">Ultimi 12 mesi</option>
+                    <option value="6m">Ultimi 6 mesi</option>
+                    <option value="3m">Ultimi 3 mesi</option>
+                    <option value="1m" selected>Ultimo mese</option>
+                    <option value="1w">Ultima settimana</option>
+                    <option value="last">Ultima seduta</option>
+                  </select>
+                </div>
+              </div>
+              <!-- 1. Grafico RPE Sessione (Grande) -->
+              <div class="chart-card" style="margin-bottom: 20px;">
+                <div class="chart-card-title">
+                  <i data-lucide="brain" style="color: var(--accent-red);"></i> Fatica Complessiva Sessione (Media Arrotondata per Eccesso, 1-5)
+                </div>
+                <div class="chart-container" style="height: 250px;">
+                  <canvas id="chart-rpe-session-trend"></canvas>
+                </div>
+              </div>
+
+              <!-- Griglia 4 Esercizi Target RPE -->
+              <div class="analytics-grid">
+                <!-- 1. RPE Squat & Affondi -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="trending-up" style="color: var(--accent-neon);"></i> Fatica Squat & Affondi (RPE 1-5)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-rpe-squat-trend"></canvas>
+                  </div>
+                </div>
+
+                <!-- 2. RPE High Pull & Clean -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="zap" style="color: var(--accent-blue);"></i> Fatica High Pull & Clean (RPE 1-5)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-rpe-clean-trend"></canvas>
+                  </div>
+                </div>
+
+                <!-- 3. RPE Press Verticali -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="dumbbell" style="color: var(--accent-orange);"></i> Fatica Press Verticali (RPE 1-5)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-rpe-press-trend"></canvas>
+                  </div>
+                </div>
+
+                <!-- 4. RPE Stacchi & RDL -->
+                <div class="chart-card">
+                  <div class="chart-card-title">
+                    <i data-lucide="anchor" style="color: var(--accent-red);"></i> Fatica Stacchi & RDL (RPE 1-5)
+                  </div>
+                  <div class="chart-container">
+                    <canvas id="chart-rpe-deadlift-trend"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         VISTA ATLETA (Client Mobile View)
+         ========================================== -->
+    <div id="view-client" class="app-view">
+      
+      <!-- Selettore Profilo Atleta per simulazione -->
+      <div id="client-athlete-selector" class="info-card" style="max-width: 480px; margin: 0 auto 20px auto; text-align: center;">
+        <h4 style="margin-bottom: 12px; font-family: var(--font-title);">Accedi come Atleta per registrarti:</h4>
+        <div id="client-selector-buttons" style="display: flex; justify-content: center; gap: 10px;">
+          <!-- Bottoni popolati via JS -->
+        </div>
+      </div>
+
+      <!-- Smartphone Simulato -->
+      <div class="client-container">
+        <div class="client-screen">
+          
+          <!-- Header Smartphone -->
+          <div class="client-header">
+            <div class="client-athlete-info">
+              <div id="client-ui-avatar" class="client-avatar">AL</div>
+              <div class="client-athlete-text">
+                <h4 id="client-ui-name">Caricamento...</h4>
+                <p id="client-ui-sport">Ruolo dell'Atleta</p>
+              </div>
+            </div>
+            <div class="timer-box" id="client-workout-timer">
+              <i data-lucide="timer"></i> <span id="timer-val">00:00</span>
+            </div>
+          </div>
+
+          <!-- Titolo Workout -->
+          <div>
+            <div class="workout-today-title" id="client-workout-title">Scheda del Giorno</div>
+            <div class="workout-today-meta">
+              <span>Focus: Potenza & Salto</span>
+              <span id="client-workout-date">Oggi</span>
+            </div>
+          </div>
+
+          <!-- Contenitore Esercizi da Svolgere -->
+          <div id="client-exercises-container" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Popolato via JS in base alla scheda assegnata al cliente selezionato -->
+          </div>
+
+          <!-- Pulsante di Invio -->
+          <button id="btn-client-submit-workout" class="client-save-btn">
+            <i data-lucide="check-circle-2"></i> Invia Allenamento al Coach
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       MODALI DI SISTEMA (Popup overlays)
+       ========================================== -->
+  
+  <!-- Modale Aggiungi Atleta -->
+  <div id="modal-athlete" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>Aggiungi Nuovo Pallavolista</span>
+        <button class="modal-close-btn" onclick="closeModal('modal-athlete')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="form-new-athlete" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group">
+          <label>Nome Completo</label>
+          <input type="text" name="name" class="form-control" placeholder="Es. Andrea Lucchetta" required>
+        </div>
+        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label>Età</label>
+            <input type="number" name="age" class="form-control" placeholder="Es. 21">
+          </div>
+          <div>
+            <label>Genere</label>
+            <select name="gender" class="form-control">
+              <option value="M">Maschile</option>
+              <option value="F" selected>Femminile</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px;">
+          <div>
+            <label>Ruolo in campo</label>
+            <select name="ruolo" class="form-control">
+              <option value="Schiacciatore">Schiacciatore</option>
+              <option value="Centrale">Centrale</option>
+              <option value="Opposto">Opposto</option>
+              <option value="Palleggiatore">Palleggiatore</option>
+              <option value="Libero">Libero</option>
+            </select>
+          </div>
+          <div>
+            <label>Categoria/Squadra</label>
+            <select name="sport" class="form-control">
+              <optgroup label="Categorie Giovanili">
+                <option value="Under 12">Under 12</option>
+                <option value="Under 13">Under 13</option>
+                <option value="Under 14">Under 14</option>
+                <option value="Under 15">Under 15</option>
+                <option value="Under 16" selected>Under 16</option>
+                <option value="Under 17">Under 17</option>
+                <option value="Under 18">Under 18</option>
+                <option value="Under 19">Under 19</option>
+              </optgroup>
+              <optgroup label="Categorie Senior">
+                <option value="Terza Divisione">Terza Divisione</option>
+                <option value="Seconda Divisione">Seconda Divisione</option>
+                <option value="Prima Divisione">Prima Divisione</option>
+                <option value="Serie D">Serie D</option>
+                <option value="Serie C">Serie C</option>
+                <option value="Serie B2">Serie B2</option>
+                <option value="Serie B1">Serie B1</option>
+                <option value="Serie B">Serie B</option>
+                <option value="Serie A3">Serie A3</option>
+                <option value="Serie A2">Serie A2</option>
+                <option value="Serie A1">Serie A1</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Obiettivo Principale</label>
+          <input type="text" name="goal" class="form-control" placeholder="Es. Incremento Altezza Attacco (Spike Jump)">
+        </div>
+        
+        <div class="form-group">
+          <label>Situazioni Particolari / Limitazioni Mediche (dolori cronici, patologie, ecc.)</label>
+          <input type="text" name="situations" class="form-control" placeholder="Es. dolore cronico ginocchio sx, scoliosi, tendinite">
+        </div>
+        
+        <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 6px;">
+          <h4 style="font-size: 13px; margin-bottom: 8px; font-family: var(--font-title);">Misure Antropometriche Iniziali</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+            <div class="form-group">
+              <label>Peso (kg)</label>
+              <input type="number" step="0.1" name="peso" class="form-control" placeholder="kg">
+            </div>
+            <div class="form-group">
+              <label>Altezza (cm)</label>
+              <input type="number" name="altezza" class="form-control" placeholder="cm">
+            </div>
+            <div class="form-group">
+              <label>Reach 1 mano (cm)</label>
+              <input type="number" name="reachDominante" class="form-control" placeholder="cm">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-athlete')">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Atleta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale Registrazione Nuovi Test Fisici -->
+  <div id="modal-test" class="modal-overlay">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <span>Registra Risultati Test Volley</span>
+        <button class="modal-close-btn" onclick="closeModal('modal-test')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="form-new-test" style="display: flex; flex-direction: column; gap: 12px;">
+        
+        <div class="form-group">
+          <label>Data di Esecuzione Test</label>
+          <input type="date" name="date" class="form-control" required id="test-input-date">
+        </div>
+
+        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 5px;">
+          <h4 style="font-size: 13px; margin-bottom: 8px; font-family: var(--font-title); color: var(--accent-orange);">Test di Forza (1RM o Stimato in kg)</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+            <div class="form-group">
+              <label>Back Squat</label>
+              <input type="number" name="squat1RM" class="form-control" placeholder="kg">
+            </div>
+            <div class="form-group">
+              <label>Power Clean</label>
+              <input type="number" name="powerClean1RM" class="form-control" placeholder="kg">
+            </div>
+            <div class="form-group">
+              <label>Push Press</label>
+              <input type="number" name="pushPress1RM" class="form-control" placeholder="kg">
+            </div>
+            <div class="form-group">
+              <label>Stacco</label>
+              <input type="number" name="deadlift1RM" class="form-control" placeholder="kg">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="font-size: 13px; margin-bottom: 8px; font-family: var(--font-title); color: var(--accent-neon);">Test Velocità & Salto</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label>Elevazione CMJ (cm)</label>
+              <input type="number" name="cmj" class="form-control" placeholder="cm">
+            </div>
+            <div class="form-group">
+              <label>Broad Jump (cm)</label>
+              <input type="number" name="broadJump" class="form-control" placeholder="cm">
+            </div>
+            <div class="form-group" title="Altezza assoluta raggiunta in cm saltando con rincorsa">
+              <label>Rincorsa Attacco (cm)</label>
+              <input type="number" name="spikeJump" class="form-control" placeholder="cm">
+            </div>
+            <div class="form-group">
+              <label>Sprint 10m (s)</label>
+              <input type="number" step="0.01" name="sprint10m" class="form-control" placeholder="sec">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-test')">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Dati Test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale Registrazione Singolo Test Fisico -->
+  <div id="modal-single-test" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <span id="single-test-title">Registra Test</span>
+        <button class="modal-close-btn" onclick="closeModal('modal-single-test')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="form-single-test" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="hidden" name="testType" id="single-test-type-id">
+        <input type="hidden" name="testCategory" id="single-test-category-id">
+        
+        <div class="form-group">
+          <label>Data del Test</label>
+          <input type="date" name="date" class="form-control" required id="single-test-date">
+        </div>
+
+        <div class="form-group">
+          <label id="single-test-input-label">Valore</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" step="any" name="value" class="form-control" id="single-test-value" placeholder="Valore" required style="flex-grow: 1;">
+            <span id="single-test-unit" style="font-weight: 600; min-width: 30px;">kg</span>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 8px; border-radius: var(--radius-sm);">
+          Ultimo valore registrato: <strong id="single-test-prev-value" style="color: var(--accent-orange);">--</strong>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-single-test')">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale Modifica Profilo Atleta -->
+  <div id="modal-edit-profile" class="modal-overlay">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <span>Modifica Profilo Atleta</span>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-profile')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="form-edit-profile" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>Nome</label>
+            <input type="text" name="firstName" class="form-control" required id="edit-profile-firstname">
+          </div>
+          <div class="form-group">
+            <label>Cognome</label>
+            <input type="text" name="lastName" class="form-control" required id="edit-profile-lastname">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Categoria / Squadra</label>
+          <select name="sport" class="form-control" required id="edit-profile-sport">
+            <optgroup label="Categorie Giovanili">
+              <option value="Under 12">Under 12</option>
+              <option value="Under 13">Under 13</option>
+              <option value="Under 14">Under 14</option>
+              <option value="Under 15">Under 15</option>
+              <option value="Under 16">Under 16</option>
+              <option value="Under 17">Under 17</option>
+              <option value="Under 18">Under 18</option>
+              <option value="Under 19">Under 19</option>
+            </optgroup>
+            <optgroup label="Categorie Senior">
+              <option value="Terza Divisione">Terza Divisione</option>
+              <option value="Seconda Divisione">Seconda Divisione</option>
+              <option value="Prima Divisione">Prima Divisione</option>
+              <option value="Serie D">Serie D</option>
+              <option value="Serie C">Serie C</option>
+              <option value="Serie B2">Serie B2</option>
+              <option value="Serie B1">Serie B1</option>
+              <option value="Serie B">Serie B</option>
+              <option value="Serie A3">Serie A3</option>
+              <option value="Serie A2">Serie A2</option>
+              <option value="Serie A1">Serie A1</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Obiettivo Primario</label>
+          <textarea name="goal" class="form-control" rows="3" id="edit-profile-goal" placeholder="es. Aumento elevazione e forza esplosiva" style="resize: vertical; font-family: var(--font-body);"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Situazioni Particolari / Limitazioni Mediche</label>
+          <textarea name="situations" class="form-control" rows="2" id="edit-profile-situations" placeholder="es. Dolore cronico al ginocchio sx, scoliosi, tendinite spalla" style="resize: vertical; font-family: var(--font-body);"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-profile')">Annulla</button>
+          <button type="submit" class="btn-primary">Salva Modifiche</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale Centro Notifiche Allenamenti -->
+  <div id="modal-notifications" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="display:flex; align-items:center; gap:8px; font-family: var(--font-title); font-weight:700;">
+          <i data-lucide="bell" style="color:var(--accent-orange);"></i> Notifiche Completamento Sedute
+        </span>
+        <button class="modal-close-btn" onclick="closeModal('modal-notifications')" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div id="notifications-list-container" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 12px; margin-top: 10px; padding-right: 4px; max-height: 55vh;">
+        <!-- Lista notifiche caricata via JS -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px;">
+        <button type="button" class="btn-secondary" onclick="clearNotifications()" style="padding: 6px 12px; font-size: 13px; color: var(--accent-red); border-color: rgba(255,51,102,0.2); cursor: pointer;">
+          Segna tutte come lette
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Logica Applicativa -->
+  <script src="database.js?v=2.2"></script>
+  <script src="app.js?v=2.2"></script>
+</body>
+</html>
