@@ -143,6 +143,8 @@ function initApp() {
     if (viewSelector) viewSelector.style.display = 'none';
     const logoutBtn = document.getElementById('btn-coach-logout');
     if (logoutBtn) logoutBtn.style.display = 'none';
+    const notificationsBtn = document.getElementById('btn-notifications');
+    if (notificationsBtn) notificationsBtn.style.display = 'none';
   } else {
     // Vista Coach: controlla se è autenticato
     const isAuth = localStorage.getItem('fitfeedback_coach_authenticated') === 'true';
@@ -1233,6 +1235,7 @@ function activateSeduta(sedutaId) {
 
   athlete.currentWorkout = JSON.parse(JSON.stringify(seduta.exercises));
   athlete.activeSedutaId = sedutaId;
+  athlete.currentWorkoutCompleted = false;
   
   saveDatabase(db);
   renderMacrociclo(athlete);
@@ -1284,6 +1287,7 @@ function saveActiveSeduta(andActivate = false) {
   if (andActivate) {
     athlete.currentWorkout = JSON.parse(JSON.stringify(newExercises));
     athlete.activeSedutaId = activeSedutaId;
+    athlete.currentWorkoutCompleted = false;
   }
 
   saveDatabase(db);
@@ -2302,12 +2306,32 @@ function initClientPortal() {
   document.getElementById('client-workout-date').innerText = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' });
 
   renderClientWorkoutList(athlete);
-  startWorkoutTimer();
+  
+  const timerBox = document.getElementById('client-workout-timer');
+  if (athlete.currentWorkoutCompleted) {
+    if (timerBox) timerBox.style.display = 'none';
+    stopWorkoutTimer();
+  } else {
+    if (timerBox) timerBox.style.display = 'flex';
+    startWorkoutTimer();
+  }
 }
 
 function renderClientWorkoutList(athlete) {
   const container = document.getElementById('client-exercises-container');
   container.innerHTML = '';
+
+  if (athlete.currentWorkoutCompleted) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 60px 20px; color:var(--text-main);">
+        <div style="font-size: 60px; margin-bottom: 20px;">🏆</div>
+        <h3 style="font-family: var(--font-title); margin-bottom: 12px; font-size: 20px;">Seduta Completata!</h3>
+        <p style="color:var(--text-muted); font-size: 14px; line-height: 1.5; max-width: 320px; margin: 0 auto;">Hai completato e inviato il tuo allenamento. Il coach sta analizzando i tuoi risultati per preparare la prossima scheda.</p>
+      </div>
+    `;
+    document.getElementById('btn-client-submit-workout').style.display = 'none';
+    return;
+  }
 
   if (!athlete.currentWorkout || athlete.currentWorkout.length === 0) {
     container.innerHTML = `<div style="text-align:center; padding: 40px 10px; color:var(--text-muted);">Nessun allenamento programmato per oggi dal coach.</div>`;
@@ -2636,6 +2660,8 @@ function submitClientWorkout() {
 
   if (!athlete.history) athlete.history = [];
   athlete.history.unshift(completedWorkout);
+  
+  athlete.currentWorkoutCompleted = true;
 
   saveDatabase(db);
   if (supabaseClient) {
@@ -3058,25 +3084,25 @@ async function syncWithSupabase() {
     if (error) throw error;
 
     if (data && data.length > 0) {
-      // Filtra solo gli oggetti atleti validi ed esclude record sporchi
       const cloudAthletesList = data.map(row => row.data).filter(d => d && d.id && d.name);
+      const hasOldAthletes = cloudAthletesList.some(a => a.name !== 'Denise');
       
-      if (cloudAthletesList.length >= 20) {
+      if (hasOldAthletes) {
+        console.log("Rilevate vecchie atlete in Cloud (Supabase). Avvio pulizia cloud...");
+        await supabaseClient.from('athletes').delete().neq('id', 'force_delete_all_placeholder');
+        await uploadAllToSupabase();
+      } else {
         db.athletes = cloudAthletesList;
         localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
         
-        // Re-render
         renderAthleteList();
+        activeAthleteId = 'athlete-1';
         selectAthlete(activeAthleteId);
         renderClientSelector();
         renderNotifications();
         console.log("Database sincronizzato con Supabase (Cloud caricato con successo). Atleti validi:", cloudAthletesList.length);
-      } else {
-        console.log("Supabase contiene meno di 20 atleti. Aggiornamento in corso con il nuovo roster...");
-        await uploadAllToSupabase();
       }
     } else {
-      // Supabase è vuoto: carichiamo il database iniziale di default in cloud
       console.log("Il Database Cloud è vuoto. Caricamento dei dati di default (Seed)...");
       await uploadAllToSupabase();
     }
