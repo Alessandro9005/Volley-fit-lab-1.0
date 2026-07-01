@@ -56,7 +56,8 @@ function getAthletes() {
   if (!db || !Array.isArray(db.athletes)) {
     db = loadDatabase();
   }
-  return Array.isArray(db.athletes) ? db.athletes : [];
+  const list = Array.isArray(db.athletes) ? db.athletes : [];
+  return list.filter(a => !a.deleted);
 }
 
 function getActiveAthlete() {
@@ -600,34 +601,27 @@ function handleAddAthlete(e) {
 
 function deleteAthlete(athleteId) {
   if (confirm("Sei sicuro di voler rimuovere questo atleta? Tutti i suoi dati andranno persi.")) {
-    db.deletedAthleteIds = db.deletedAthleteIds || [];
-    if (!db.deletedAthleteIds.includes(athleteId)) {
-      db.deletedAthleteIds.push(athleteId);
+    const athlete = db.athletes.find(a => a.id === athleteId);
+    if (athlete) {
+      athlete.deleted = true;
+      athlete.updatedAt = Date.now();
+      saveDatabase(db);
     }
     
-    db.athletes = db.athletes.filter(a => a.id !== athleteId);
-    saveDatabase(db);
-    
-    // Rimuove l'atleta anche dal database cloud Supabase
-    if (supabaseClient) {
-      supabaseClient.from('athletes').delete().eq('id', athleteId).then(({ error }) => {
-        if (error) {
-          console.error("Errore cancellazione atleta in cloud:", error);
-        } else {
-          console.log(`Atleta ${athleteId} rimosso anche dal cloud.`);
-        }
-      }).catch(err => {
-        console.error("Errore di rete cancellazione cloud:", err);
-      });
-    }
-    
-    if (db.athletes.length > 0) {
-      activeAthleteId = db.athletes[0].id;
+    const activeAthletes = getAthletes();
+    if (activeAthletes.length > 0) {
+      activeAthleteId = activeAthletes[0].id;
     } else {
       activeAthleteId = '';
     }
     
     renderAthleteList();
+    if (activeAthleteId) {
+      selectAthlete(activeAthleteId);
+    }
+    renderClientSelector();
+  }
+}
     selectAthlete(activeAthleteId);
     renderClientSelector();
   }
@@ -3444,33 +3438,18 @@ async function syncWithSupabase() {
     if (error) throw error;
 
     const cloudAthletesList = (data || []).map(row => row.data).filter(d => d && d.id && d.name);
-    
-    db.deletedAthleteIds = db.deletedAthleteIds || [];
 
-    if (db.deletedAthleteIds.length > 0) {
-      const promises = db.deletedAthleteIds.map(id => {
-        return supabaseClient.from('athletes').delete().eq('id', id).then(({ error }) => {
-          if (!error) {
-            db.deletedAthleteIds = db.deletedAthleteIds.filter(x => x !== id);
-          }
-        });
-      });
-      await Promise.all(promises);
-      saveDatabase(db, { skipCloudSync: true });
-    }
-
-    const activeCloud = cloudAthletesList.filter(a => !db.deletedAthleteIds.includes(a.id));
-
-    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, activeCloud);
+    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, cloudAthletesList);
 
     db.athletes = merged;
     localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
 
     if (localChanged) {
       renderAthleteList();
-      const activeExists = db.athletes.some(a => a.id === activeAthleteId);
-      if (!activeExists && db.athletes.length > 0) {
-        activeAthleteId = db.athletes[0].id;
+      const activeAthletes = getAthletes();
+      const activeExists = activeAthletes.some(a => a.id === activeAthleteId);
+      if (!activeExists && activeAthletes.length > 0) {
+        activeAthleteId = activeAthletes[0].id;
       }
       selectAthlete(activeAthleteId);
       renderClientSelector();
@@ -3508,11 +3487,8 @@ async function syncWithSupabaseSilent() {
     if (error) throw error;
 
     const cloudAthletesList = (data || []).map(row => row.data).filter(d => d && d.id && d.name);
-    
-    db.deletedAthleteIds = db.deletedAthleteIds || [];
-    const activeCloud = cloudAthletesList.filter(a => !db.deletedAthleteIds.includes(a.id));
 
-    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, activeCloud);
+    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, cloudAthletesList);
 
     if (localChanged || cloudChanged) {
       db.athletes = merged;
