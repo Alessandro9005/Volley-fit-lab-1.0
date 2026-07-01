@@ -57,7 +57,7 @@ function getAthletes() {
     db = loadDatabase();
   }
   const list = Array.isArray(db.athletes) ? db.athletes : [];
-  return list.filter(a => !a.deleted);
+  return list.filter(a => a && !a.deleted);
 }
 
 function getActiveAthlete() {
@@ -619,10 +619,6 @@ function deleteAthlete(athleteId) {
     if (activeAthleteId) {
       selectAthlete(activeAthleteId);
     }
-    renderClientSelector();
-  }
-}
-    selectAthlete(activeAthleteId);
     renderClientSelector();
   }
 }
@@ -3391,8 +3387,11 @@ function clearNotifications() {
 
 function mergeLocalAndCloudAthletes(localAthletes, cloudAthletes) {
   const merged = [];
-  const localMap = new Map((localAthletes || []).map(a => [a.id, a]));
-  const cloudMap = new Map((cloudAthletes || []).map(a => [a.id, a]));
+  const cleanLocal = (localAthletes || []).filter(a => a && a.id);
+  const cleanCloud = (cloudAthletes || []).filter(a => a && a.id);
+
+  const localMap = new Map(cleanLocal.map(a => [a.id, a]));
+  const cloudMap = new Map(cleanCloud.map(a => [a.id, a]));
 
   const allIds = new Set([...localMap.keys(), ...cloudMap.keys()]);
 
