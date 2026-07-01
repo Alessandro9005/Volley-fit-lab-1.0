@@ -1282,3 +1282,13 @@ main {
   text-transform: uppercase;
   font-family: var(--font-title);
 }
+
+.btn-delete-history {
+  transition: color var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+.btn-delete-history:hover {
+  color: var(--accent-red) !important;
+  transform: scale(1.15);
+}
+

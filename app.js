@@ -1821,9 +1821,12 @@ function renderHistory(athlete) {
           <span class="history-item-date">${formatItalianDate(workout.date)}</span>
           <span style="margin-left: 12px; font-weight:600; font-family:var(--font-title);">${workout.name}</span>
         </div>
-        <div class="history-item-meta">
+        <div class="history-item-meta" style="display:flex; align-items:center; gap:16px;">
           <span>Durata: <strong>${workout.duration} min</strong></span>
           <span>RPE Medio: <strong>${avgRpe}/5</strong></span>
+          <button class="btn-delete-history" onclick="deleteHistoryItem('${athlete.id}', '${workout.date}')" title="Elimina questo allenamento dallo storico" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; display:flex; align-items:center; transition:color var(--transition-fast);">
+            <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+          </button>
         </div>
       </div>
       
@@ -1846,6 +1849,26 @@ function renderHistory(athlete) {
     container.appendChild(item);
   });
   safeCreateIcons();
+}
+
+function deleteHistoryItem(athleteId, date) {
+  const athlete = db.athletes.find(a => a.id === athleteId);
+  if (!athlete) return;
+
+  const workoutName = athlete.history.find(w => w.date === date)?.name || 'Allenamento';
+  if (confirm(`Sei sicuro di voler eliminare "${workoutName}" dallo storico dell'atleta? Questa azione non può essere annullata.`)) {
+    athlete.history = (athlete.history || []).filter(w => w.date !== date);
+    saveDatabase(db);
+    renderHistory(athlete);
+    renderAthleteHeader(athlete);
+    renderMacrociclo(athlete);
+    
+    if (activeTrainerTab === 'tab-analytics') {
+      renderAnalyticsCharts();
+    }
+    
+    alert("Allenamento rimosso dallo storico con successo!");
+  }
 }
 
 // ==========================================================================
