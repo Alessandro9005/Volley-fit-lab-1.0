@@ -460,12 +460,14 @@ function copyAthleteLink(athleteId) {
 }
 function fillAnthropometricsForm(athlete) {
   const form = document.getElementById('form-anthropometrics');
-  form.elements['peso'].value = athlete.antropometria.peso;
-  form.elements['altezza'].value = athlete.antropometria.altezza;
-  form.elements['reachDominante'].value = athlete.antropometria.reachDominante || 0;
-  form.elements['ruolo'].value = athlete.ruolo || 'Schiacciatore';
-  form.elements['birthdate'].value = getAthleteBirthdate(athlete);
-  form.elements['gender'].value = athlete.gender;
+  if (!form) return;
+  
+  if (form.elements['peso']) form.elements['peso'].value = athlete.antropometria.peso;
+  if (form.elements['altezza']) form.elements['altezza'].value = athlete.antropometria.altezza;
+  if (form.elements['reachDominante']) form.elements['reachDominante'].value = athlete.antropometria.reachDominante || 0;
+  if (form.elements['ruolo']) form.elements['ruolo'].value = athlete.ruolo || 'Schiacciatore';
+  if (form.elements['birthdate']) form.elements['birthdate'].value = getAthleteBirthdate(athlete);
+  if (form.elements['gender']) form.elements['gender'].value = athlete.gender;
 }
 
 function renderTestResults(athlete) {
