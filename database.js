@@ -89,7 +89,7 @@ const EXERCISE_LIBRARY = [
 
 // Roster delle atlete - Denise come unica atleta di test
 const PLAYERS_DATA = [
-  { name: 'Denise', ruolo: 'Schiacciatrice', peso: 62.0, altezza: 175, reach: 228, cmj: 38, squat3MAV: 55, age: 17, sport: 'Under 19', gender: 'Femminile' }
+  { name: 'Denise', ruolo: 'Schiacciatrice', peso: 62.0, altezza: 175, reach: 228, cmj: 38, squat3MAV: 55, birthdate: '2009-05-15', sport: 'Under 19', gender: 'Femminile' }
 ];
 
 // Storico iniziale di test per Denise
@@ -197,7 +197,7 @@ function generateVolleyballDatabase() {
     return {
       id: id,
       name: player.name,
-      age: player.age || 17,
+      birthdate: player.birthdate || '2009-05-15',
       gender: player.gender || 'Femminile',
       ruolo: player.ruolo,
       sport: player.sport || 'U19 Femminile Volley',

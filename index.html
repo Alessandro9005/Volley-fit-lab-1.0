@@ -167,8 +167,8 @@
                       </select>
                     </div>
                     <div class="antropometria-row">
-                      <span class="antropometria-label">Età (anni)</span>
-                      <input type="number" name="age" class="form-control" style="width: 120px; text-align: right;" required>
+                      <span class="antropometria-label">Data di nascita</span>
+                      <input type="date" name="birthdate" class="form-control" style="width: 150px; text-align: right;" required>
                     </div>
                     <div class="antropometria-row">
                       <span class="antropometria-label">Genere</span>
@@ -267,6 +267,9 @@
                 <div style="display: flex; gap: 8px;">
                   <button id="btn-add-macrociclo" class="btn-secondary" onclick="handleAddMacrociclo()">
                     <i data-lucide="folder-plus"></i> Nuovo Macrociclo
+                  </button>
+                  <button id="btn-paste-seduta" class="btn-secondary" onclick="handlePasteSeduta()" style="display: none; border-color: var(--accent-orange); color: var(--accent-orange);">
+                    <i data-lucide="clipboard"></i> Incolla Seduta
                   </button>
                   <button id="btn-add-seduta" class="btn-primary">
                     <i data-lucide="plus-circle"></i> Nuova Seduta
@@ -748,8 +751,8 @@
         </div>
         <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label>Età</label>
-            <input type="number" name="age" class="form-control" placeholder="Es. 21">
+            <label>Data di nascita</label>
+            <input type="date" name="birthdate" class="form-control" required>
           </div>
           <div>
             <label>Genere</label>

@@ -64,6 +64,32 @@ function getActiveAthlete() {
   return athletes.find(a => a.id === activeAthleteId) || athletes[0] || null;
 }
 
+function getAthleteAge(athlete) {
+  if (!athlete) return '';
+  if (athlete.birthdate) {
+    const birthDate = new Date(athlete.birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+  return athlete.age || '';
+}
+
+function getAthleteBirthdate(athlete) {
+  if (!athlete) return '';
+  if (athlete.birthdate) return athlete.birthdate;
+  if (athlete.age) {
+    const currentYear = new Date().getFullYear();
+    const estYear = currentYear - athlete.age;
+    return `${estYear}-01-01`;
+  }
+  return '';
+}
+
 // Callback globale per salvare su Supabase quando si effettua saveDatabase()
 window.onDatabaseSaveCallback = (data) => {
   if (cloudSyncAvailable) {
@@ -147,7 +173,7 @@ function initApp() {
     if (notificationsBtn) notificationsBtn.style.display = 'none';
   } else {
     // Vista Coach: controlla se è autenticato
-    const isAuth = localStorage.getItem('fitfeedback_coach_authenticated') === 'true';
+    const isAuth = sessionStorage.getItem('fitfeedback_coach_authenticated') === 'true';
     if (!isAuth) {
       showCoachPasswordPrompt();
     }
@@ -267,7 +293,7 @@ function renderAthleteList() {
     card.innerHTML = `
       <div class="athlete-card-name">${escapeHtml(athlete.name)}</div>
       <div class="athlete-card-details">
-        <div>Età: <strong>${escapeHtml(athlete.age)} anni</strong> | Genere: <strong>${escapeHtml(genderText)}</strong></div>
+        <div>Età: <strong>${getAthleteAge(athlete)} anni</strong> | Genere: <strong>${escapeHtml(genderText)}</strong></div>
         <div>Ruolo: <strong>${escapeHtml(athlete.ruolo)}</strong></div>
         <div>Squadra: <strong>${escapeHtml(athlete.sport)}</strong></div>
       </div>
@@ -397,7 +423,7 @@ function renderAthleteHeader(athlete) {
 
   header.innerHTML = `
     <div class="athlete-main-info">
-      <h2>${escapeHtml(athlete.name)} (${escapeHtml(athlete.age)} anni, ${escapeHtml(athlete.gender)})</h2>
+      <h2>${escapeHtml(athlete.name)} (${getAthleteAge(athlete)} anni, ${escapeHtml(athlete.gender)})</h2>
       <p><strong>Ruolo:</strong> ${escapeHtml(athlete.ruolo)} | <strong>Categoria:</strong> ${escapeHtml(athlete.sport)} | <strong>Obiettivo:</strong> ${escapeHtml(athlete.goal)}${situationsHtml}</p>
       <div class="athlete-meta-badges">
         <span class="meta-badge"><i data-lucide="volleyball" style="width:14px; color:var(--accent-neon);"></i> Ruolo: ${escapeHtml(athlete.ruolo)}</span>
@@ -438,7 +464,7 @@ function fillAnthropometricsForm(athlete) {
   form.elements['altezza'].value = athlete.antropometria.altezza;
   form.elements['reachDominante'].value = athlete.antropometria.reachDominante || 0;
   form.elements['ruolo'].value = athlete.ruolo || 'Schiacciatore';
-  form.elements['age'].value = athlete.age;
+  form.elements['birthdate'].value = getAthleteBirthdate(athlete);
   form.elements['gender'].value = athlete.gender;
 }
 
@@ -473,16 +499,10 @@ function handleAddAthlete(e) {
     return;
   }
 
-  const rawAge = formData.get('age');
+  const birthdate = formData.get('birthdate') || '2009-05-15';
   const rawPeso = formData.get('peso');
   const rawAltezza = formData.get('altezza');
   const rawReach = formData.get('reachDominante');
-
-  const age = rawAge ? parseInt(rawAge) : 17;
-  if (isNaN(age) || age <= 0) {
-    alert("Età non valida! Inserire un numero positivo.");
-    return;
-  }
 
   const peso = rawPeso ? parseFloat(rawPeso) : null;
   if (rawPeso && (isNaN(peso) || peso <= 0)) {
@@ -515,7 +535,7 @@ function handleAddAthlete(e) {
   const newAthlete = {
     id: 'athlete-' + Date.now(),
     name: name,
-    age: age,
+    birthdate: birthdate,
     gender: gender,
     ruolo: ruolo,
     sport: sport,
@@ -597,7 +617,7 @@ function handleSaveAnthropometrics(e) {
   const pesoVal = parseFloat(formData.get('peso'));
   const altezzaVal = parseInt(formData.get('altezza'));
   const reachVal = parseInt(formData.get('reachDominante')) || 0;
-  const ageVal = parseInt(formData.get('age'));
+  const birthdateVal = formData.get('birthdate');
 
   if (isNaN(pesoVal) || pesoVal <= 0) {
     alert("Peso non valido! Inserire un numero positivo.");
@@ -611,8 +631,8 @@ function handleSaveAnthropometrics(e) {
     alert("Reach statico non valido!");
     return;
   }
-  if (isNaN(ageVal) || ageVal <= 0) {
-    alert("Età non valida! Inserire un numero positivo.");
+  if (!birthdateVal) {
+    alert("Data di nascita non valida!");
     return;
   }
 
@@ -620,7 +640,7 @@ function handleSaveAnthropometrics(e) {
   athlete.antropometria.altezza = altezzaVal;
   athlete.antropometria.reachDominante = reachVal;
   athlete.ruolo = formData.get('ruolo');
-  athlete.age = ageVal;
+  athlete.birthdate = birthdateVal;
   athlete.gender = formData.get('gender');
 
   saveDatabase(db);
@@ -925,6 +945,9 @@ function renderMacrociclo(athlete) {
         <button class="btn-secondary" onclick="openWorkoutBuilderDetail('${escapeJsArg(seduta.id)}')" title="Modifica esercizi e parametri" style="padding: 8px 12px;">
           <i data-lucide="edit-3" style="width:16px; height:16px;"></i>
         </button>
+        <button class="btn-secondary" onclick="copySedutaToClipboard('${escapeJsArg(seduta.id)}')" title="Copia negli appunti" style="padding: 8px 12px;">
+          <i data-lucide="clipboard" style="width:16px; height:16px;"></i>
+        </button>
         <button class="btn-secondary" onclick="duplicateSeduta('${escapeJsArg(seduta.id)}')" title="Duplica seduta" style="padding: 8px 12px;">
           <i data-lucide="copy" style="width:16px; height:16px;"></i>
         </button>
@@ -937,6 +960,7 @@ function renderMacrociclo(athlete) {
     container.appendChild(card);
   });
 
+  updatePasteButtonVisibility();
   safeCreateIcons();
 }
 
@@ -1476,6 +1500,89 @@ function duplicateSeduta(sedutaId) {
   renderMacrociclo(athlete);
   
   alert(`Seduta duplicata con successo come "${newName}"!`);
+}
+
+function copySedutaToClipboard(sedutaId) {
+  const athlete = db.athletes.find(a => a.id === activeAthleteId);
+  if (!athlete) return;
+
+  const activeMacro = athlete.macrocicli.find(m => m.id === athlete.activeMacrocicloId);
+  if (!activeMacro) return;
+
+  const seduta = activeMacro.sedute.find(s => s.id === sedutaId);
+  if (!seduta) return;
+
+  const clipboardData = {
+    name: seduta.name,
+    exercises: JSON.parse(JSON.stringify(seduta.exercises))
+  };
+
+  localStorage.setItem('volleyfitlab_copied_seduta', JSON.stringify(clipboardData));
+  
+  updatePasteButtonVisibility();
+  
+  alert(`Seduta "${seduta.name}" copiata negli appunti! Ora puoi incollarla in qualsiasi macrociclo o su un'altra atleta.`);
+}
+
+function updatePasteButtonVisibility() {
+  const btnPaste = document.getElementById('btn-paste-seduta');
+  if (!btnPaste) return;
+
+  const copiedDataStr = localStorage.getItem('volleyfitlab_copied_seduta');
+  if (copiedDataStr) {
+    try {
+      const data = JSON.parse(copiedDataStr);
+      btnPaste.innerHTML = `<i data-lucide="clipboard"></i> Incolla "${data.name}"`;
+      btnPaste.style.display = 'inline-flex';
+      safeCreateIcons();
+    } catch (e) {
+      btnPaste.style.display = 'none';
+    }
+  } else {
+    btnPaste.style.display = 'none';
+  }
+}
+
+function handlePasteSeduta() {
+  const athlete = db.athletes.find(a => a.id === activeAthleteId);
+  if (!athlete) {
+    alert("Seleziona prima un atleta per poter incollare la seduta!");
+    return;
+  }
+
+  const activeMacro = athlete.macrocicli.find(m => m.id === athlete.activeMacrocicloId);
+  if (!activeMacro) {
+    alert("Questo atleta non ha alcun macrociclo attivo. Creane uno prima di incollare!");
+    return;
+  }
+
+  const copiedDataStr = localStorage.getItem('volleyfitlab_copied_seduta');
+  if (!copiedDataStr) {
+    alert("Nessuna seduta copiata negli appunti!");
+    return;
+  }
+
+  try {
+    const copiedData = JSON.parse(copiedDataStr);
+    const newName = prompt(`Come vuoi chiamare la seduta incollata in questo macrociclo?`, `${copiedData.name} (Copia)`);
+    if (!newName || !newName.trim()) return;
+
+    const newSedutaId = `seduta-${Date.now()}`;
+    const newSeduta = {
+      id: newSedutaId,
+      name: newName.trim(),
+      exercises: JSON.parse(JSON.stringify(copiedData.exercises))
+    };
+
+    activeMacro.sedute.push(newSeduta);
+    saveDatabase(db);
+    renderMacrociclo(athlete);
+    
+    alert(`Seduta "${newSeduta.name}" incollata con successo nel macrociclo "${activeMacro.name}" di ${athlete.name}!`);
+  } catch (e) {
+    console.error("Errore durante l'incolla della seduta:", e);
+    alert("Impossibile incollare la seduta. I dati negli appunti potrebbero essere corrotti.");
+  }
 }
 
 function deleteSeduta(sedutaId) {
@@ -3353,9 +3460,9 @@ function showCoachPasswordPrompt() {
       const pwdInput = document.getElementById('coach-password-input');
       const errorMsg = document.getElementById('login-error-msg');
       
-      // Default password: coachfitlab
-      if (pwdInput.value === 'coachfitlab') {
-        localStorage.setItem('fitfeedback_coach_authenticated', 'true');
+      // Password coach impostata su Nala
+      if (pwdInput.value === 'Nala') {
+        sessionStorage.setItem('fitfeedback_coach_authenticated', 'true');
         if (overlay) overlay.style.display = 'none';
         pwdInput.value = '';
         if (errorMsg) errorMsg.style.display = 'none';
@@ -3370,7 +3477,8 @@ function showCoachPasswordPrompt() {
 }
 
 function logoutCoach() {
-  localStorage.removeItem('fitfeedback_coach_authenticated');
+  sessionStorage.removeItem('fitfeedback_coach_authenticated');
+  localStorage.removeItem('fitfeedback_coach_authenticated'); // Rimuove eventuali residui storici
   location.reload();
 }
 
