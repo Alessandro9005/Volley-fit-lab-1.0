@@ -90,11 +90,30 @@ function getAthleteBirthdate(athlete) {
   return '';
 }
 
-// Callback globale per salvare su Supabase quando si effettua saveDatabase()
 window.onDatabaseSaveCallback = (data) => {
   if (cloudSyncAvailable) {
     uploadAllToSupabase();
   }
+};
+
+// Intercettore di salvataggio per inserire automaticamente i timestamp di modifica
+const originalSaveDatabase = saveDatabase;
+saveDatabase = function(data, options = {}) {
+  if (data && Array.isArray(data.athletes)) {
+    if (typeof activeAthleteId !== 'undefined' && activeAthleteId) {
+      const activeAthlete = data.athletes.find(a => a.id === activeAthleteId);
+      if (activeAthlete) {
+        activeAthlete.updatedAt = Date.now();
+      }
+    }
+    if (typeof activeClientAthleteId !== 'undefined' && activeClientAthleteId) {
+      const activeClientAthlete = data.athletes.find(a => a.id === activeClientAthleteId);
+      if (activeClientAthlete) {
+        activeClientAthlete.updatedAt = Date.now();
+      }
+    }
+  }
+  originalSaveDatabase(data, options);
 };
 
 // Esegui all'avvio
@@ -581,6 +600,11 @@ function handleAddAthlete(e) {
 
 function deleteAthlete(athleteId) {
   if (confirm("Sei sicuro di voler rimuovere questo atleta? Tutti i suoi dati andranno persi.")) {
+    db.deletedAthleteIds = db.deletedAthleteIds || [];
+    if (!db.deletedAthleteIds.includes(athleteId)) {
+      db.deletedAthleteIds.push(athleteId);
+    }
+    
     db.athletes = db.athletes.filter(a => a.id !== athleteId);
     saveDatabase(db);
     
@@ -3322,35 +3346,101 @@ function clearNotifications() {
 // INTEGRAZIONE SUPABASE REALTIME SYNC (CLOUD DATABASE SHARING)
 // ==========================================================================
 
+function mergeLocalAndCloudAthletes(localAthletes, cloudAthletes) {
+  const merged = [];
+  const localMap = new Map((localAthletes || []).map(a => [a.id, a]));
+  const cloudMap = new Map((cloudAthletes || []).map(a => [a.id, a]));
+
+  const allIds = new Set([...localMap.keys(), ...cloudMap.keys()]);
+
+  let localChanged = false;
+  let cloudChanged = false;
+  const uploadList = [];
+
+  for (const id of allIds) {
+    const local = localMap.get(id);
+    const cloud = cloudMap.get(id);
+
+    if (local && cloud) {
+      const localTime = local.updatedAt || 0;
+      const cloudTime = cloud.updatedAt || 0;
+
+      if (localTime >= cloudTime) {
+        merged.push(local);
+        if (localTime > cloudTime) {
+          cloudChanged = true;
+          uploadList.push(local);
+        }
+      } else {
+        merged.push(cloud);
+        localChanged = true;
+      }
+    } else if (local) {
+      merged.push(local);
+      cloudChanged = true;
+      uploadList.push(local);
+    } else if (cloud) {
+      merged.push(cloud);
+      localChanged = true;
+    }
+  }
+
+  return { merged, localChanged, cloudChanged, uploadList };
+}
+
 async function syncWithSupabase() {
   if (!supabaseClient || !cloudSyncAvailable) return;
   try {
     const { data, error } = await supabaseClient.from('athletes').select('*');
     if (error) throw error;
 
-    if (data && data.length > 0) {
-      const cloudAthletesList = data.map(row => row.data).filter(d => d && d.id && d.name);
-      const hasOldAthletes = cloudAthletesList.some(a => a.name !== 'Denise');
-      
-      if (hasOldAthletes) {
-        console.log("Rilevate vecchie atlete in Cloud (Supabase). Avvio pulizia cloud...");
-        await supabaseClient.from('athletes').delete().neq('id', 'force_delete_all_placeholder');
-        await uploadAllToSupabase();
-      } else {
-        db.athletes = cloudAthletesList;
-        localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
-        
-        renderAthleteList();
-        activeAthleteId = 'athlete-1';
-        selectAthlete(activeAthleteId);
-        renderClientSelector();
-        renderNotifications();
-        console.log("Database sincronizzato con Supabase (Cloud caricato con successo). Atleti validi:", cloudAthletesList.length);
-      }
-    } else {
-      console.log("Il Database Cloud è vuoto. Caricamento dei dati di default (Seed)...");
-      await uploadAllToSupabase();
+    const cloudAthletesList = (data || []).map(row => row.data).filter(d => d && d.id && d.name);
+    
+    db.deletedAthleteIds = db.deletedAthleteIds || [];
+
+    if (db.deletedAthleteIds.length > 0) {
+      const promises = db.deletedAthleteIds.map(id => {
+        return supabaseClient.from('athletes').delete().eq('id', id).then(({ error }) => {
+          if (!error) {
+            db.deletedAthleteIds = db.deletedAthleteIds.filter(x => x !== id);
+          }
+        });
+      });
+      await Promise.all(promises);
+      saveDatabase(db, { skipCloudSync: true });
     }
+
+    const activeCloud = cloudAthletesList.filter(a => !db.deletedAthleteIds.includes(a.id));
+
+    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, activeCloud);
+
+    db.athletes = merged;
+    localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
+
+    if (localChanged) {
+      renderAthleteList();
+      const activeExists = db.athletes.some(a => a.id === activeAthleteId);
+      if (!activeExists && db.athletes.length > 0) {
+        activeAthleteId = db.athletes[0].id;
+      }
+      selectAthlete(activeAthleteId);
+      renderClientSelector();
+      renderNotifications();
+    }
+
+    if (cloudChanged && uploadList.length > 0) {
+      const uploadPromises = uploadList.map(athlete => {
+        return supabaseClient.from('athletes').upsert({
+          id: athlete.id,
+          name: athlete.name,
+          data: athlete
+        });
+      });
+      await Promise.all(uploadPromises);
+      console.log("Sync completato: atleti locali aggiornati su cloud.");
+    }
+    
+    console.log("Database sincronizzato. Atleti totali:", db.athletes.length);
   } catch (err) {
     const isNetworkError = !navigator.onLine || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('network');
     if (!isNetworkError) {
@@ -3368,28 +3458,40 @@ async function syncWithSupabaseSilent() {
     const { data, error } = await supabaseClient.from('athletes').select('*');
     if (error) throw error;
 
-    if (data && data.length > 0) {
-      const cloudAthletesList = data.map(row => row.data).filter(d => d && d.id && d.name);
-      
-      if (cloudAthletesList.length > 0) {
-        db.athletes = cloudAthletesList;
-        localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
-        
-        // Aggiorniamo silenziosamente solo lo storico e le notifiche e la lista atleti
-        renderAthleteList();
-        // Aggiorniamo la dashboard se il tab attivo non è il builder
-        if (activeTrainerTab !== 'tab-program-builder') {
-          const activeAthlete = db.athletes.find(a => a.id === activeAthleteId);
-          if (activeAthlete) {
-            renderAthleteHeader(activeAthlete);
-            renderTestResults(activeAthlete);
-            renderHistory(activeAthlete);
-            renderMacrociclo(activeAthlete);
-          }
+    const cloudAthletesList = (data || []).map(row => row.data).filter(d => d && d.id && d.name);
+    
+    db.deletedAthleteIds = db.deletedAthleteIds || [];
+    const activeCloud = cloudAthletesList.filter(a => !db.deletedAthleteIds.includes(a.id));
+
+    const { merged, localChanged, cloudChanged, uploadList } = mergeLocalAndCloudAthletes(db.athletes, activeCloud);
+
+    if (localChanged || cloudChanged) {
+      db.athletes = merged;
+      localStorage.setItem('volleyfitlab_data', JSON.stringify(db));
+
+      renderAthleteList();
+      if (activeTrainerTab !== 'tab-program-builder') {
+        const activeAthlete = db.athletes.find(a => a.id === activeAthleteId);
+        if (activeAthlete) {
+          renderAthleteHeader(activeAthlete);
+          renderTestResults(activeAthlete);
+          renderHistory(activeAthlete);
+          renderMacrociclo(activeAthlete);
         }
-        renderNotifications();
-        console.log("Sincronizzazione periodica silenziosa completata.");
       }
+      renderNotifications();
+      renderClientSelector();
+    }
+
+    if (cloudChanged && uploadList.length > 0) {
+      const uploadPromises = uploadList.map(athlete => {
+        return supabaseClient.from('athletes').upsert({
+          id: athlete.id,
+          name: athlete.name,
+          data: athlete
+        });
+      });
+      await Promise.all(uploadPromises);
     }
   } catch (err) {
     const isNetworkError = !navigator.onLine || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('network');
