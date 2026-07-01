@@ -1143,6 +1143,10 @@ function createExerciseBuilderRow(ex, index) {
   }
 
   row.innerHTML = `
+    <div class="drag-handle" title="Trascina per riordinare l'esercizio">
+      <i data-lucide="grip-vertical" style="width: 18px; height: 18px;"></i>
+    </div>
+
     <div class="form-group">
       <label>Categoria</label>
       <select class="form-control ex-category-select" onchange="handleCategoryChange(this)">
@@ -1210,6 +1214,7 @@ function createExerciseBuilderRow(ex, index) {
   container.appendChild(row);
   updateSetsBuilder(row, ex.setsList || null);
   initExerciseBuilderRowListeners(row);
+  makeRowDraggable(row);
   safeCreateIcons();
 }
 
@@ -1225,6 +1230,19 @@ function updateSetsBuilder(row, setsList = null) {
   const setsCount = Math.max(1, parseInt(setsInput.value) || 4);
   const defaultReps = Math.max(1, parseInt(repsInput.value) || 5);
   const defaultWeight = Math.max(0, parseFloat(weightInput.value) || 0);
+
+  // Se non viene passato un setsList, leggiamo le modifiche fatte a mano già presenti sul DOM
+  if (!setsList) {
+    setsList = [];
+    const currentBubbles = container.querySelectorAll('.set-builder-bubble');
+    currentBubbles.forEach(bubble => {
+      const wInput = bubble.querySelector('.set-weight');
+      const rInput = bubble.querySelector('.set-reps');
+      const w = wInput ? Math.max(0, parseFloat(wInput.value) || 0) : defaultWeight;
+      const r = rInput ? Math.max(1, parseInt(rInput.value) || 5) : defaultReps;
+      setsList.push({ reps: r, weight: w });
+    });
+  }
 
   const selectedOption = selectEx.options[selectEx.selectedIndex];
   const type = selectedOption ? selectedOption.getAttribute('data-type') : 'weight';
@@ -1300,6 +1318,37 @@ function initExerciseBuilderRowListeners(row) {
     bubbles.forEach(input => {
       input.value = weightInput.value;
     });
+  });
+}
+
+function makeRowDraggable(row) {
+  row.setAttribute('draggable', 'true');
+  
+  row.addEventListener('dragstart', (e) => {
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  });
+
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+  });
+
+  row.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const container = document.getElementById('program-exercises-container');
+    const draggingRow = container.querySelector('.dragging');
+    if (!draggingRow || draggingRow === row) return;
+
+    const bounding = row.getBoundingClientRect();
+    const offset = e.clientY - bounding.top - bounding.height / 2;
+    
+    if (offset > 0) {
+      row.after(draggingRow);
+    } else {
+      row.before(draggingRow);
+    }
   });
 }
 
