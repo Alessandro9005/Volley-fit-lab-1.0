@@ -2258,8 +2258,8 @@ function renderAnalyticsCharts() {
     
     trySetEl('vol-plyo-reps', plyoReps.toLocaleString('it-IT'));
 
-    // Funzione per raccogliere l'andamento del volume per un singolo esercizio principale
-    function getVolumeTrendData(exerciseKeyword) {
+    // Funzione per raccogliere l'andamento del volume filtrando per categorie
+    function getCategoryVolumeTrendData(categoryKeywords) {
       const sortedWorkouts = [...filteredWorkouts].reverse();
       
       const labels = [];
@@ -2272,7 +2272,8 @@ function renderAnalyticsCharts() {
         let found = false;
 
         workout.exercises.forEach(ex => {
-          if (ex.name.toLowerCase().includes(exerciseKeyword)) {
+          const cat = (ex.category || '').toLowerCase();
+          if (categoryKeywords.some(keyword => cat.includes(keyword))) {
             found = true;
             ex.sets.forEach(s => {
               if (s.completed) {
@@ -2343,85 +2344,60 @@ function renderAnalyticsCharts() {
     const pressColor = isTon ? '#ff7b00' : '#ccff00';
     const deadliftColor = isTon ? '#ff3366' : '#00d9ff';
 
-    // 1. Squat & Affondi
-    const vSquat = getVolumeTrendData('squat');
-    // Consideriamo anche gli affondi per il trend
-    const vAffondi = getVolumeTrendData('affond');
-    
-    // Uniamo i dati se l'atleta ha entrambi lo stesso giorno nello storico (somma) o prendiamo squat
-    const combinedSquatLabels = Array.from(new Set([...vSquat.labels, ...vAffondi.labels])).sort((a,b) => {
-      // Formato data italiana (es. 29 Giu 2026), per ordinamento corretto leggiamo dal filteredWorkouts
-      const dA = filteredWorkouts.find(w => formatItalianDate(w.date) === a)?.date || '';
-      const dB = filteredWorkouts.find(w => formatItalianDate(w.date) === b)?.date || '';
-      return new Date(dA) - new Date(dB);
-    });
-    
-    const combinedSquatData = combinedSquatLabels.map(lbl => {
-      const idxSquat = vSquat.labels.indexOf(lbl);
-      const idxAffondi = vAffondi.labels.indexOf(lbl);
-      const valSquat = idxSquat !== -1 ? (isTon ? vSquat.tonnageData[idxSquat] : vSquat.repsData[idxSquat]) : 0;
-      const valAffondi = idxAffondi !== -1 ? (isTon ? vAffondi.tonnageData[idxAffondi] : vAffondi.repsData[idxAffondi]) : 0;
-      return valSquat + valAffondi;
-    });
+    // 1. Squat e Stacco
+    const vSquatDeadlift = getCategoryVolumeTrendData(['squat', 'stacco']);
+    charts.volSquatDeadlift = createVolumeSingleChart(
+      'chart-vol-squatdeadlift', 
+      isTon ? 'Squat e Stacco (Tonnellaggio, kg)' : 'Squat e Stacco (Alzate)', 
+      vSquatDeadlift.labels, 
+      isTon ? vSquatDeadlift.tonnageData : vSquatDeadlift.repsData, 
+      squatColor, 
+      yLabel
+    );
 
-    charts.volSquat = createVolumeSingleChart('chart-vol-squat', isTon ? 'Squat & Affondi (Tonnellaggio, kg)' : 'Squat & Affondi (Alzate)', combinedSquatLabels, combinedSquatData, squatColor, yLabel);
+    // 2. Power
+    const vPower = getCategoryVolumeTrendData(['power']);
+    charts.volPower = createVolumeSingleChart(
+      'chart-vol-power', 
+      isTon ? 'Power (Tonnellaggio, kg)' : 'Power (Alzate)', 
+      vPower.labels, 
+      isTon ? vPower.tonnageData : vPower.repsData, 
+      cleanColor, 
+      yLabel
+    );
 
-    // 2. High Pull & Clean
-    const vClean = getVolumeTrendData('clean');
-    const vPull = getVolumeTrendData('high pull');
-    const vGirata = getVolumeTrendData('girata');
-    const combinedCleanLabels = Array.from(new Set([...vClean.labels, ...vPull.labels, ...vGirata.labels])).sort((a,b) => {
-      const dA = filteredWorkouts.find(w => formatItalianDate(w.date) === a)?.date || '';
-      const dB = filteredWorkouts.find(w => formatItalianDate(w.date) === b)?.date || '';
-      return new Date(dA) - new Date(dB);
-    });
-    const combinedCleanData = combinedCleanLabels.map(lbl => {
-      const idxClean = vClean.labels.indexOf(lbl);
-      const idxPull = vPull.labels.indexOf(lbl);
-      const idxGirata = vGirata.labels.indexOf(lbl);
-      const valClean = idxClean !== -1 ? (isTon ? vClean.tonnageData[idxClean] : vClean.repsData[idxClean]) : 0;
-      const valPull = idxPull !== -1 ? (isTon ? vPull.tonnageData[idxPull] : vPull.repsData[idxPull]) : 0;
-      const valGirata = idxGirata !== -1 ? (isTon ? vGirata.tonnageData[idxGirata] : vGirata.repsData[idxGirata]) : 0;
-      return valClean + valPull + valGirata;
-    });
+    // 3. Spinte
+    const vSpinte = getCategoryVolumeTrendData(['spinte']);
+    charts.volSpinte = createVolumeSingleChart(
+      'chart-vol-spinte', 
+      isTon ? 'Spinte (Tonnellaggio, kg)' : 'Spinte (Alzate)', 
+      vSpinte.labels, 
+      isTon ? vSpinte.tonnageData : vSpinte.repsData, 
+      pressColor, 
+      yLabel
+    );
 
-    charts.volClean = createVolumeSingleChart('chart-vol-powerclean', isTon ? 'High Pull & Clean (Tonnellaggio, kg)' : 'High Pull & Clean (Alzate)', combinedCleanLabels, combinedCleanData, cleanColor, yLabel);
+    // 4. Tirate
+    const vTirate = getCategoryVolumeTrendData(['tirate']);
+    charts.volTirate = createVolumeSingleChart(
+      'chart-vol-tirate', 
+      isTon ? 'Tirate (Tonnellaggio, kg)' : 'Tirate (Alzate)', 
+      vTirate.labels, 
+      isTon ? vTirate.tonnageData : vTirate.repsData, 
+      deadliftColor, 
+      yLabel
+    );
 
-    // 3. Press Verticali
-    const vPress = getVolumeTrendData('press');
-    const vMilitary = getVolumeTrendData('military');
-    const combinedPressLabels = Array.from(new Set([...vPress.labels, ...vMilitary.labels])).sort((a,b) => {
-      const dA = filteredWorkouts.find(w => formatItalianDate(w.date) === a)?.date || '';
-      const dB = filteredWorkouts.find(w => formatItalianDate(w.date) === b)?.date || '';
-      return new Date(dA) - new Date(dB);
-    });
-    const combinedPressData = combinedPressLabels.map(lbl => {
-      const idxPress = vPress.labels.indexOf(lbl);
-      const idxMil = vMilitary.labels.indexOf(lbl);
-      const valPress = idxPress !== -1 ? (isTon ? vPress.tonnageData[idxPress] : vPress.repsData[idxPress]) : 0;
-      const valMil = idxMil !== -1 ? (isTon ? vMilitary.tonnageData[idxMil] : vMilitary.repsData[idxMil]) : 0;
-      return valPress + valMil;
-    });
-
-    charts.volPress = createVolumeSingleChart('chart-vol-pushpress', isTon ? 'Press Verticali (Tonnellaggio, kg)' : 'Press Verticali (Alzate)', combinedPressLabels, combinedPressData, pressColor, yLabel);
-
-    // 4. Stacchi & RDL
-    const vDeadlift = getVolumeTrendData('stacco');
-    const vRdl = getVolumeTrendData('rdl');
-    const combinedDeadLabels = Array.from(new Set([...vDeadlift.labels, ...vRdl.labels])).sort((a,b) => {
-      const dA = filteredWorkouts.find(w => formatItalianDate(w.date) === a)?.date || '';
-      const dB = filteredWorkouts.find(w => formatItalianDate(w.date) === b)?.date || '';
-      return new Date(dA) - new Date(dB);
-    });
-    const combinedDeadData = combinedDeadLabels.map(lbl => {
-      const idxDead = vDeadlift.labels.indexOf(lbl);
-      const idxRdl = vRdl.labels.indexOf(lbl);
-      const valDead = idxDead !== -1 ? (isTon ? vDeadlift.tonnageData[idxDead] : vDeadlift.repsData[idxDead]) : 0;
-      const valRdl = idxRdl !== -1 ? (isTon ? vRdl.tonnageData[idxRdl] : vRdl.repsData[idxRdl]) : 0;
-      return valDead + valRdl;
-    });
-
-    charts.volDeadlift = createVolumeSingleChart('chart-vol-deadlift', isTon ? 'Stacchi & RDL (Tonnellaggio, kg)' : 'Stacchi & RDL (Alzate)', combinedDeadLabels, combinedDeadData, deadliftColor, yLabel);
+    // 5. Pliometrici
+    const vPlyo = getCategoryVolumeTrendData(['pliom', 'balist']);
+    charts.volPlyo = createVolumeSingleChart(
+      'chart-vol-plyo', 
+      'Pliometrici (Alzate)', 
+      vPlyo.labels, 
+      vPlyo.repsData, 
+      '#a855f7', 
+      'Alzate (Ripetizioni)'
+    );
   } else if (activeAnalyticsSubTab === 'rpe') {
     // --- SOTTO-TAB 3: ANDAMENTO FATICA (RPE) ---
     const timeframe = document.getElementById('rpe-timeframe-filter').value;
