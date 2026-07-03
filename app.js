@@ -2572,7 +2572,22 @@ function renderAnalyticsCharts() {
 
 function renderClientSelector() {
   const container = document.getElementById('client-selector-buttons');
-  container.innerHTML = '';
+  if (container) container.innerHTML = '';
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const athParam = urlParams.get('ath') || urlParams.get('athlete');
+  if (athParam) {
+    const selectorEl = document.getElementById('client-athlete-selector');
+    if (selectorEl) selectorEl.style.display = 'none';
+    
+    const uiNameEl = document.getElementById('client-ui-name');
+    if (uiNameEl && uiNameEl.innerText.trim() === 'Caricamento...') {
+       // Se i dati sono appena arrivati dal cloud e l'app era in attesa, inizializzala!
+       initClientPortal();
+    }
+    
+    return; // Blocca il rendering dei bottoni per gli altri atleti
+  }
 
   getAthletes().forEach(athlete => {
     const btn = document.createElement('button');
@@ -2597,12 +2612,13 @@ function initClientPortal() {
   
   let athlete = null;
   if (athParam) {
+    // Nascondi selettore atleti per simulazione incondizionatamente
+    const selectorEl = document.getElementById('client-athlete-selector');
+    if (selectorEl) selectorEl.style.display = 'none';
+
     athlete = athletes.find(a => a.id === athParam || a.name.toLowerCase() === athParam.toLowerCase());
     if (athlete) {
       activeClientAthleteId = athlete.id;
-      // Nascondi selettore atleti per simulazione
-      const selectorEl = document.getElementById('client-athlete-selector');
-      if (selectorEl) selectorEl.style.display = 'none';
     }
   }
   
