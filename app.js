@@ -2187,21 +2187,16 @@ function renderAnalyticsCharts() {
     // Aggregazione statistiche di volume
     let totalTonnage = 0;
     let totalReps = 0;
-    let lowerTon = 0;
-    let lowerReps = 0;
-    let upperTon = 0;
-    let upperReps = 0;
-    let plyoTon = 0;
-    let plyoReps = 0;
 
-    let specSquatTon = 0;
-    let specSquatReps = 0;
-    let specDeadliftTon = 0;
-    let specDeadliftReps = 0;
-    let specPressTon = 0;
-    let specPressReps = 0;
-    let specCleanPullTon = 0;
-    let specCleanPullReps = 0;
+    let squatDeadliftTon = 0;
+    let squatDeadliftReps = 0;
+    let powerTon = 0;
+    let powerReps = 0;
+    let spinteTon = 0;
+    let spinteReps = 0;
+    let tirateTon = 0;
+    let tirateReps = 0;
+    let plyoReps = 0;
 
     filteredWorkouts.forEach(workout => {
       workout.exercises.forEach(ex => {
@@ -2221,57 +2216,47 @@ function renderAnalyticsCharts() {
         totalReps += exerciseReps;
 
         const catNormalized = (ex.category || '').toLowerCase();
-        if (catNormalized.includes('inferiori')) {
-          lowerTon += exerciseTonnage;
-          lowerReps += exerciseReps;
-        } else if (catNormalized.includes('superiori')) {
-          upperTon += exerciseTonnage;
-          upperReps += exerciseReps;
+        
+        if (catNormalized.includes('squat') || catNormalized.includes('stacco')) {
+          squatDeadliftTon += exerciseTonnage;
+          squatDeadliftReps += exerciseReps;
+        } else if (catNormalized.includes('power')) {
+          powerTon += exerciseTonnage;
+          powerReps += exerciseReps;
+        } else if (catNormalized.includes('spinte')) {
+          spinteTon += exerciseTonnage;
+          spinteReps += exerciseReps;
+        } else if (catNormalized.includes('tirate')) {
+          tirateTon += exerciseTonnage;
+          tirateReps += exerciseReps;
         } else if (catNormalized.includes('pliom') || catNormalized.includes('balist')) {
-          plyoTon += exerciseTonnage;
           plyoReps += exerciseReps;
-        }
-
-        // Calcoli per esercizi specifici (compresi varianti)
-        const exNameLower = (ex.name || '').toLowerCase();
-        if (exNameLower.includes('squat') || exNameLower.includes('affond')) {
-          specSquatTon += exerciseTonnage;
-          specSquatReps += exerciseReps;
-        }
-        if (exNameLower.includes('stacco') || exNameLower.includes('rdl')) {
-          specDeadliftTon += exerciseTonnage;
-          specDeadliftReps += exerciseReps;
-        }
-        if (exNameLower.includes('press') || exNameLower.includes('military')) {
-          specPressTon += exerciseTonnage;
-          specPressReps += exerciseReps;
-        }
-        if (exNameLower.includes('high pull') || exNameLower.includes('clean') || exNameLower.includes('girata')) {
-          specCleanPullTon += exerciseTonnage;
-          specCleanPullReps += exerciseReps;
         }
       });
     });
 
     // Aggiornamento DOM
-    document.getElementById('vol-summary-tonnage').innerText = `${Math.round(totalTonnage).toLocaleString('it-IT')} kg`;
-    document.getElementById('vol-summary-reps').innerText = totalReps.toLocaleString('it-IT');
-    document.getElementById('vol-lower-ton').innerText = Math.round(lowerTon).toLocaleString('it-IT');
-    document.getElementById('vol-lower-reps').innerText = lowerReps.toLocaleString('it-IT');
-    document.getElementById('vol-upper-ton').innerText = Math.round(upperTon).toLocaleString('it-IT');
-    document.getElementById('vol-upper-reps').innerText = upperReps.toLocaleString('it-IT');
-    document.getElementById('vol-plyo-ton').innerText = Math.round(plyoTon).toLocaleString('it-IT');
-    document.getElementById('vol-plyo-reps').innerText = plyoReps.toLocaleString('it-IT');
-
-    // Aggiornamento DOM esercizi specifici
-    document.getElementById('vol-spec-squat-ton').innerText = Math.round(specSquatTon).toLocaleString('it-IT');
-    document.getElementById('vol-spec-squat-reps').innerText = specSquatReps.toLocaleString('it-IT');
-    document.getElementById('vol-spec-deadlift-ton').innerText = Math.round(specDeadliftTon).toLocaleString('it-IT');
-    document.getElementById('vol-spec-deadlift-reps').innerText = specDeadliftReps.toLocaleString('it-IT');
-    document.getElementById('vol-spec-press-ton').innerText = Math.round(specPressTon).toLocaleString('it-IT');
-    document.getElementById('vol-spec-press-reps').innerText = specPressReps.toLocaleString('it-IT');
-    document.getElementById('vol-spec-cleanpull-ton').innerText = Math.round(specCleanPullTon).toLocaleString('it-IT');
-    document.getElementById('vol-spec-cleanpull-reps').innerText = specCleanPullReps.toLocaleString('it-IT');
+    const trySetEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = val;
+    };
+    
+    trySetEl('vol-summary-tonnage', `${Math.round(totalTonnage).toLocaleString('it-IT')} kg`);
+    trySetEl('vol-summary-reps', totalReps.toLocaleString('it-IT'));
+    
+    trySetEl('vol-squatdeadlift-ton', Math.round(squatDeadliftTon).toLocaleString('it-IT'));
+    trySetEl('vol-squatdeadlift-reps', squatDeadliftReps.toLocaleString('it-IT'));
+    
+    trySetEl('vol-power-ton', Math.round(powerTon).toLocaleString('it-IT'));
+    trySetEl('vol-power-reps', powerReps.toLocaleString('it-IT'));
+    
+    trySetEl('vol-spinte-ton', Math.round(spinteTon).toLocaleString('it-IT'));
+    trySetEl('vol-spinte-reps', spinteReps.toLocaleString('it-IT'));
+    
+    trySetEl('vol-tirate-ton', Math.round(tirateTon).toLocaleString('it-IT'));
+    trySetEl('vol-tirate-reps', tirateReps.toLocaleString('it-IT'));
+    
+    trySetEl('vol-plyo-reps', plyoReps.toLocaleString('it-IT'));
 
     // Funzione per raccogliere l'andamento del volume per un singolo esercizio principale
     function getVolumeTrendData(exerciseKeyword) {

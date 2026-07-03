@@ -471,7 +471,7 @@
                 </div>
               </div>
 
-              <!-- Riepilogo Volumi Generali & per Gruppo Muscolare -->
+              <!-- Riepilogo Volumi Generali & Categorie -->
               <div class="test-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
                 <div class="test-card" style="cursor: default; border-color: rgba(204,255,0,0.3);">
                   <div class="test-card-title" style="color: var(--accent-neon);">Tonnellaggio Totale</div>
@@ -484,59 +484,37 @@
                   <span style="font-size: 10px; color: var(--text-muted);">Alzate totali (rep * set)</span>
                 </div>
                 <div class="test-card" style="cursor: default;">
-                  <div class="test-card-title">Arti Inferiori</div>
-                  <div id="vol-summary-lower" style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-lower-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-lower-reps">0</span></div>
+                  <div class="test-card-title">Squat e Stacco</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-squatdeadlift-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-squatdeadlift-reps">0</span></div>
                   </div>
                 </div>
                 <div class="test-card" style="cursor: default;">
-                  <div class="test-card-title">Arti Superiori</div>
-                  <div id="vol-summary-upper" style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-upper-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-upper-reps">0</span></div>
+                  <div class="test-card-title">Power</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-power-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-power-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default;">
+                  <div class="test-card-title">Spinte</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spinte-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spinte-reps">0</span></div>
+                  </div>
+                </div>
+                <div class="test-card" style="cursor: default;">
+                  <div class="test-card-title">Tirate</div>
+                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
+                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-tirate-ton">0</span> kg</div>
+                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-tirate-reps">0</span></div>
                   </div>
                 </div>
                 <div class="test-card" style="cursor: default;">
                   <div class="test-card-title">Pliometrici / Balistici</div>
-                  <div id="vol-summary-plyo" style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-plyo-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-plyo-reps">0</span></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Riepilogo Volumi Esercizi Specifici (Esercizi Target) -->
-              <div style="margin-bottom: 12px; margin-top: 16px;">
-                <h5 style="font-family: var(--font-title); font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">Dettaglio Esercizi Target nel Periodo</h5>
-              </div>
-              <div class="test-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
-                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
-                  <div class="test-card-title">Squat & Affondi</div>
                   <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-squat-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-squat-reps">0</span></div>
-                  </div>
-                </div>
-                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
-                  <div class="test-card-title">Stacchi & RDL</div>
-                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-deadlift-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-deadlift-reps">0</span></div>
-                  </div>
-                </div>
-                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
-                  <div class="test-card-title">Press Verticali (Tutte)</div>
-                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-press-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-press-reps">0</span></div>
-                  </div>
-                </div>
-                <div class="test-card" style="cursor: default; border-color: rgba(255,255,255,0.08);">
-                  <div class="test-card-title">High Pull & Clean</div>
-                  <div style="font-size: 12px; margin-top: 6px; font-weight:700;">
-                    <div style="color: var(--accent-neon);">Tonnellaggio: <span id="vol-spec-cleanpull-ton">0</span> kg</div>
-                    <div style="color: var(--accent-blue); margin-top:2px;">Alzate: <span id="vol-spec-cleanpull-reps">0</span></div>
+                    <div style="color: var(--accent-blue);">Ripetizioni: <span id="vol-plyo-reps">0</span></div>
                   </div>
                 </div>
               </div>
